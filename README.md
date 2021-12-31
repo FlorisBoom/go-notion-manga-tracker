@@ -1,0 +1,1 @@
+A cron job that tracks manga by either crawling websites or making use of the mangadex API
