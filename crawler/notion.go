@@ -18,13 +18,13 @@ type Manga struct {
 	Title                  string
 	Link                   string
 	Status                 string
-	CurrentProgress        int
-	LatestRelease          int
-	LatestReleaseLink      string
+	CurrentProgress        float32
+	LatestRelease          float32
 	SeenLatestRelease      bool
 	ReleaseSchedule        string
 	LatestReleaseUpdatedAt string
-	Rating                 int
+	Rating                 float32
+	Art                    string
 }
 
 type NotionPagesResponseResults struct {
@@ -49,15 +49,15 @@ type NotionPagesResponseResults struct {
 			}
 		} `json:"Type"`
 		CurrentProgress struct {
-			ID     string `json:"id"`
-			Type   string `json:"type"`
-			Number int    `json:"number"`
+			ID     string  `json:"id"`
+			Type   string  `json:"type"`
+			Number float32 `json:"number"`
 		} `json:"Current Progress"`
 		Rating struct {
 			ID   string `json:"id"`
 			Type string `json:"type"`
 			// Check the omitempty here might not work
-			Number int `json:"number"`
+			Number float32 `json:"number"`
 		} `json:"Rating"`
 		Link struct {
 			ID   string `json:"id"`
@@ -74,9 +74,9 @@ type NotionPagesResponseResults struct {
 			} `json:"multi_select"`
 		} `json:"Status"`
 		LatestRelease struct {
-			ID     string `json:"id"`
-			Type   string `json:"type"`
-			Number int    `json:"number"`
+			ID     string  `json:"id"`
+			Type   string  `json:"type"`
+			Number float32 `json:"number"`
 		} `json:"Latest Release"`
 		SeenLatestRelease struct {
 			ID       string `json:"id"`
@@ -135,15 +135,15 @@ type NotionPagesResponse struct {
 
 const (
 	Dropped    string = "Dropped"
-	DoneAiring        = "Done Airing"
-	Completed         = "Completed"
+	DoneAiring string = "Done Airing"
+	Completed  string = "Completed"
 )
 
 var notionSecret string
 var notionDatabaseId string
 
 func Sync() {
-	err := godotenv.Load("../../.env")
+	err := godotenv.Load(".env")
 
 	if err != nil {
 		log.Fatalf("Error loading .env file, err: %s", err)
@@ -161,29 +161,39 @@ func Sync() {
 	log.Printf("Sync completed, time elapsed: %s", elapsedTime)
 }
 
-func updateNotionPageLatestRelease(pageID string, latestChapter int) {
+func updateNotionPageLatestRelease(pageID string, latestChapter float32) {
 
 }
 
 func getNotionPages(includeMangaDex bool) []Manga {
-	client := http.Client{}
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
 	var nextCursor string
 	var pages []NotionPagesResponseResults
 
-	for hasMore := true; hasMore; hasMore = (hasMore == false) {
-		body := strings.NewReader(fmt.Sprintf("{\"cursor\": \"%s\"}", nextCursor))
-		if includeMangaDex {
-			body = strings.NewReader(fmt.Sprintf("{\"filter\": {\"property\": \"Link\", \"text\": { \"contains\": \"mangadex\" }}, \"cursor\": \"%s\"}", nextCursor))
+	for {
+		var body *strings.Reader
+
+		if nextCursor != "" && !includeMangaDex {
+			body = strings.NewReader(fmt.Sprintf("{\"start_cursor\": \"%s\"}", nextCursor))
+		} else if includeMangaDex && nextCursor == "" {
+			body = strings.NewReader("{\"filter\": {\"property\": \"Link\", \"text\": { \"contains\": \"mangadex\" }}}")
+		} else if includeMangaDex && nextCursor != "" {
+			body = strings.NewReader(fmt.Sprintf("{\"filter\": {\"property\": \"Link\", \"text\": { \"contains\": \"mangadex\" }}, \"start_cursor\": \"%s\"}", nextCursor))
 		}
-		req, _ := http.NewRequest("POST", fmt.Sprintf("https://api.notion.com/v1/databases/%s/query", notionDatabaseId), body)
-		req.Header = http.Header{
-			"Authorization":  []string{"Bearer ", notionSecret},
-			"Notion-Version": []string{time.Now().Format("YYYY-MM-DD")},
-			"Content-Type":   []string{"application/json"},
+
+		req, _ := http.NewRequest("POST", fmt.Sprintf("https://api.notion.com/v1/databases/%s/query", notionDatabaseId), nil)
+		if body != nil {
+			req, _ = http.NewRequest("POST", fmt.Sprintf("https://api.notion.com/v1/databases/%s/query", notionDatabaseId), body)
+
 		}
+		req.Header.Add("Authorization", "Bearer "+notionSecret)
+		req.Header.Add("Notion-Version", "2021-08-16")
+		req.Header.Add("Content-Type", "application/json")
 		res, err := client.Do(req)
 
-		if err != nil {
+		if err != nil || res.StatusCode != 200 {
 			log.Fatalf("Error retrieving database pages, err: %s", err)
 		}
 		defer res.Body.Close()
@@ -196,9 +206,11 @@ func getNotionPages(includeMangaDex bool) []Manga {
 			log.Fatalf("Error parsing response body, err: %s", err)
 		}
 
-		hasMore = notionPagesResponse.HasMore
 		nextCursor = notionPagesResponse.NextCursor
 		pages = append(pages, notionPagesResponse.Results...)
+		if !notionPagesResponse.HasMore {
+			break
+		}
 	}
 
 	var mangas []Manga
@@ -213,10 +225,13 @@ func getNotionPages(includeMangaDex bool) []Manga {
 			CurrentProgress:        page.Properties.CurrentProgress.Number,
 			LatestRelease:          page.Properties.LatestRelease.Number,
 			LatestReleaseUpdatedAt: page.Properties.LatestReleaseUpdatedAt.Date.Start,
-			LatestReleaseLink:      "",
 			SeenLatestRelease:      page.Properties.SeenLatestRelease.Checkbox,
-			ReleaseSchedule:        page.Properties.ReleaseSchedule.MultiSelect[0].Name,
+			ReleaseSchedule:        "",
 			Rating:                 page.Properties.Rating.Number,
+		}
+
+		if len(page.Properties.ReleaseSchedule.MultiSelect) > 0 {
+			manga.ReleaseSchedule = page.Properties.ReleaseSchedule.MultiSelect[0].Name
 		}
 
 		mangas = append(mangas, manga)
@@ -271,10 +286,12 @@ func SyncNotionPagesWithIntegrations() {
 }
 
 func SyncMangaDexWithNotion() {
-	mangas := getNotionPages(true)
+	mangas := getNotionPages(false)
 
-	if len(mangas) == 0 {
-		log.Fatalln("No mangas found (this means something has gone wrong parsing notion to custom model)")
-	}
+	// if len(mangas) == 0 {
+	// log.Fatalln("No mangas found (this means something has gone wrong parsing notion to custom model)")
+	//
+
+	// mangas := SyncMangaDex()
 
 }

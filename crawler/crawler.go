@@ -9,7 +9,7 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
-func CrawlManga(url string, latestRelease int) int {
+func CrawlManga(url string, latestRelease float32) float32 {
 	log.Printf("Starting sync for %s", url)
 
 	c := colly.NewCollector()
@@ -50,11 +50,11 @@ func CrawlManga(url string, latestRelease int) int {
 		return latestRelease
 	}
 
-	i, err := strconv.ParseInt(latestChapter, 10, 64)
+	i, err := strconv.ParseFloat(latestChapter, 32)
 
 	if err != nil {
 		return latestRelease
 	}
 
-	return int(i)
+	return float32(i)
 }
