@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
 type AuthResponse struct {
@@ -90,11 +88,11 @@ type ChapterResponse struct {
 var token string
 
 func authorization() {
-	err := godotenv.Load(".env")
+	// err := godotenv.Load(".env")
 
-	if err != nil {
-		log.Fatalf("Error loading .env file, err: %s \n", err)
-	}
+	// if err != nil {
+	// 	log.Fatalf("Error loading .env file, err: %s \n", err)
+	// }
 
 	body := strings.NewReader(fmt.Sprintf("{\"username\": \"%s\", \"password\": \"%s\"}", os.Getenv("MANGADEX_USERNAME"), os.Getenv("MANGADEX_PASSWORD")))
 	res, err := http.Post("https://api.mangadex.org/auth/login", "application/json", body)

@@ -9,8 +9,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
 type Manga struct {
@@ -172,11 +170,11 @@ func getColorForStatus(status string) string {
 }
 
 func Sync() {
-	err := godotenv.Load(".env")
+	// err := godotenv.Load(".env")
 
-	if err != nil {
-		log.Fatalf("Error loading .env file, err: %s \n", err)
-	}
+	// if err != nil {
+	// 	log.Fatalf("Error loading .env file, err: %s \n", err)
+	// }
 
 	notionSecret = os.Getenv("NOTION_SECRET")
 	notionDatabaseId = os.Getenv("NOTION_DATABASE_ID")
