@@ -193,27 +193,35 @@ func getManga(mangaId string, status string) Manga {
 		Art:                    fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s.512.jpg", mangaId, mangaResponse.Data.Relationships[len(mangaResponse.Data.Relationships)-1].Attributes.FileName),
 	}
 
+	var statusses []string
 	switch status {
 	case "plan_to_read":
-		manga.Status[0] = PlanningToRead
+		statusses[0] = PlanningToRead
+		manga.Status = statusses
 		break
 	case "reading":
-		manga.Status[0] = Reading
+		statusses[0] = Reading
+		manga.Status = statusses
 		break
 	case "re_reading":
-		manga.Status[0] = Reading
+		statusses[0] = Reading
+		manga.Status = statusses
 		break
 	case "completed":
-		manga.Status[0] = Completed
+		statusses[0] = Completed
+		manga.Status = statusses
 		break
 	case "on_hold":
-		manga.Status[0] = OnHold
+		statusses[0] = OnHold
+		manga.Status = statusses
 		break
 	case "dropped":
-		manga.Status[0] = Dropped
+		statusses[0] = Dropped
+		manga.Status = statusses
 		break
 	default:
-		manga.Status[0] = PlanningToRead
+		statusses[0] = PlanningToRead
+		manga.Status = statusses
 		break
 	}
 
