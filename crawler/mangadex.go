@@ -93,14 +93,14 @@ func authorization() {
 	err := godotenv.Load(".env")
 
 	if err != nil {
-		log.Fatalf("Error loading .env file, err: %s", err)
+		log.Fatalf("Error loading .env file, err: %s \n", err)
 	}
 
 	body := strings.NewReader(fmt.Sprintf("{\"username\": \"%s\", \"password\": \"%s\"}", os.Getenv("MANGADEX_USERNAME"), os.Getenv("MANGADEX_PASSWORD")))
 	res, err := http.Post("https://api.mangadex.org/auth/login", "application/json", body)
 
 	if err != nil {
-		log.Fatalf("Error authorizing, err: %s", err)
+		log.Fatalf("Error authorizing, err: %s \n", err)
 	}
 	defer res.Body.Close()
 
@@ -109,7 +109,7 @@ func authorization() {
 	err = json.NewDecoder(res.Body).Decode(&authResponse)
 
 	if err != nil {
-		log.Fatalf("Error parsing response body, err: %s", err)
+		log.Fatalf("Error parsing response body, err: %s \n", err)
 	}
 
 	token = authResponse.Token.Session
@@ -127,9 +127,9 @@ func getAllMangasIds() map[string]interface{} {
 		if res.StatusCode == 401 {
 			authorization()
 
-			return getAllMangasIds()
+			// return getAllMangasIds()
 		} else {
-			log.Fatalf("Error retrieving manga statuses from mangadex, err: %s", err)
+			log.Fatalf("Error retrieving manga statuses from mangadex, err: %s \n", err)
 		}
 	}
 	defer res.Body.Close()
@@ -139,7 +139,7 @@ func getAllMangasIds() map[string]interface{} {
 	err = json.NewDecoder(res.Body).Decode(&statusReponse)
 
 	if err != nil {
-		log.Fatalf("Error parsing response body for https://api.mangadex.org/manga/status, err: %s", err)
+		log.Fatalf("Error parsing response body for https://api.mangadex.org/manga/status, err: %s \n", err)
 	}
 
 	m := make(map[string]interface{})
@@ -152,7 +152,6 @@ func getAllMangasIds() map[string]interface{} {
 }
 
 func getManga(mangaId string, status string) Manga {
-	fmt.Printf("%+v", mangaId)
 	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
@@ -166,54 +165,51 @@ func getManga(mangaId string, status string) Manga {
 
 			return getManga(mangaId, status)
 		} else {
-			log.Fatalf("Error retrieving manga detail from mangadex, err: %s", err)
+			log.Fatalf("Error retrieving manga detail from mangadex, err: %s \n", err)
 		}
 	}
 	defer res.Body.Close()
 
 	var mangaResponse MangaResponse
-	fmt.Printf("%+v", res.Body)
 
 	err = json.NewDecoder(res.Body).Decode(&mangaResponse)
 
 	if err != nil {
-		log.Fatalf("Error parsing response body for manga detail, mangaId: %s err: %s", mangaId, err)
+		log.Fatalf("Error parsing response body for manga detail, mangaId: %s err: %s \n", mangaId, err)
 	}
 
 	manga := Manga{
-		ID:                     mangaResponse.Data.ID,
 		Type:                   "Manga",
 		Title:                  mangaResponse.Data.Attributes.Title.En,
-		Link:                   "https://mangadex.org/title" + mangaResponse.Data.ID,
+		Link:                   "https://mangadex.org/title/" + mangaResponse.Data.ID,
 		CurrentProgress:        0,
 		SeenLatestRelease:      false,
 		ReleaseSchedule:        "",
-		LatestReleaseUpdatedAt: time.Now().Format("2006-01-02 15:04:05"),
-		Rating:                 0,
+		LatestReleaseUpdatedAt: mangaResponse.Data.Attributes.UpdatedAt,
 		Art:                    fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s.512.jpg", mangaId, mangaResponse.Data.Relationships[len(mangaResponse.Data.Relationships)-1].Attributes.FileName),
 	}
 
 	switch status {
 	case "plan_to_read":
-		manga.Status = "Planning To Read"
+		manga.Status = PlanningToRead
 		break
 	case "reading":
-		manga.Status = "Reading"
+		manga.Status = Reading
 		break
 	case "re_reading":
-		manga.Status = "Reading"
+		manga.Status = Reading
 		break
 	case "completed":
-		manga.Status = "Completed"
+		manga.Status = Completed
 		break
 	case "on_hold":
-		manga.Status = "On Hold"
+		manga.Status = OnHold
 		break
 	case "dropped":
-		manga.Status = "Dropped"
+		manga.Status = Dropped
 		break
 	default:
-		manga.Status = "Planning To Read"
+		manga.Status = PlanningToRead
 		break
 	}
 
@@ -237,12 +233,11 @@ func getChapterForManga(mangaId string) float32 {
 
 	if err != nil || res.StatusCode != 200 {
 		if res.StatusCode == 401 {
-			fmt.Printf("res %+v", res.Status)
 			authorization()
 
 			return getChapterForManga(mangaId)
 		} else {
-			log.Fatalf("Error retrieving manga chapters from mangadex mangaId: %s, err: %s", mangaId, err)
+			log.Fatalf("Error retrieving manga chapters from mangadex mangaId: %s, err: %s \n", mangaId, err)
 		}
 	}
 	defer res.Body.Close()
@@ -252,7 +247,7 @@ func getChapterForManga(mangaId string) float32 {
 	err = json.NewDecoder(res.Body).Decode(&chapterResponse)
 
 	if err != nil {
-		log.Fatalf("Error parsing response body for manga detail, err: %s", err)
+		log.Fatalf("Error parsing response body for manga detail, err: %s \n", err)
 	}
 
 	i, _ := strconv.ParseFloat(chapterResponse.Data[0].Attributes.Chapter, 32)

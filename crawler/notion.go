@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -27,6 +28,52 @@ type Manga struct {
 	Art                    string
 }
 
+type NotionProperties struct {
+	Type struct {
+		Select struct {
+			Name string `json:"name"`
+		} `json:"select"`
+	} `json:"Type"`
+	CurrentProgress struct {
+		Number float32 `json:"number"`
+	} `json:"Current Progress"`
+	Rating *struct {
+		Number float32 `json:"number"`
+	} `json:"Rating,omitempty"`
+	Link struct {
+		Url string `json:"url"`
+	} `json:"Link"`
+	Status struct {
+		MultiSelect []struct {
+			Color string `json:"color"`
+			Name  string `json:"name"`
+		} `json:"multi_select"`
+	} `json:"Status"`
+	LatestReleaseUpdatedAt struct {
+		Date struct {
+			Start string `json:"start"`
+		} `json:"date"`
+	} `json:"Latest Release Updated At"`
+	LatestRelease struct {
+		Number float32 `json:"number"`
+	} `json:"Latest Release"`
+	SeenLatestRelease struct {
+		Checkbox bool `json:"checkbox"`
+	} `json:"Seen Latest Release"`
+	ReleaseSchedule *struct {
+		MultiSelect []struct {
+			Name string `json:"name"`
+		} `json:"multi_select"`
+	} `json:"Release Schedule,omitempty"`
+	Title struct {
+		Title []struct {
+			Text struct {
+				Content string `json:"content"`
+			} `json:"text"`
+		} `json:"title"`
+	} `json:"Title"`
+}
+
 type NotionPagesResponseResults struct {
 	Object       string `json:"object"`
 	ID           string `json:"id"`
@@ -36,94 +83,9 @@ type NotionPagesResponseResults struct {
 		Type       string `json:"type"`
 		DatabaseId string `json:"database_id"`
 	} `json:"parent"`
-	Archived   bool   `json:"archived"`
-	Url        string `json:"url"`
-	Properties struct {
-		Type struct {
-			ID     string `json:"id"`
-			Type   string `json:"type"`
-			Select struct {
-				ID    string `json:"id"`
-				Name  string `json:"name"`
-				Color string `json:"color"`
-			}
-		} `json:"Type"`
-		CurrentProgress struct {
-			ID     string  `json:"id"`
-			Type   string  `json:"type"`
-			Number float32 `json:"number"`
-		} `json:"Current Progress"`
-		Rating struct {
-			ID   string `json:"id"`
-			Type string `json:"type"`
-			// Check the omitempty here might not work
-			Number float32 `json:"number"`
-		} `json:"Rating"`
-		Link struct {
-			ID   string `json:"id"`
-			Type string `json:"type"`
-			Url  string `json:"url"`
-		} `json:"Link"`
-		Status struct {
-			ID          string `json:"id"`
-			Type        string `json:"type"`
-			MultiSelect []struct {
-				ID    string `json:"id"`
-				Name  string `json:"name"`
-				Color string `json:"color"`
-			} `json:"multi_select"`
-		} `json:"Status"`
-		LatestRelease struct {
-			ID     string  `json:"id"`
-			Type   string  `json:"type"`
-			Number float32 `json:"number"`
-		} `json:"Latest Release"`
-		SeenLatestRelease struct {
-			ID       string `json:"id"`
-			Type     string `json:"type"`
-			Checkbox bool   `json:"checkbox"`
-		} `json:"Seen Latest Release"`
-		ReleaseSchedule struct {
-			ID          string `json:"id"`
-			Type        string `json:"type"`
-			MultiSelect []struct {
-				ID    string `json:"id"`
-				Name  string `json:"name"`
-				Color string `json:"color"`
-			} `json:"multi_select"`
-		} `json:"Release Schedule"`
-		LatestReleaseUpdatedAt struct {
-			ID   string `json:"id"`
-			Type string `json:"type"`
-			Date struct {
-				Start    string `json:"start"`
-				End      string `json:"end"`
-				TimeZone string `json:"time_zone"`
-			} `json:"date"`
-		} `json:"Latest Release Updated At"`
-		Title struct {
-			ID    string `json:"id"`
-			Type  string `json:"type"`
-			Title []struct {
-				Type string `json:"type"`
-				Text struct {
-					Content string `json:"content"`
-					Link    string `json:"link"`
-				} `json:"text"`
-				Annotations struct {
-					Bold          bool   `json:"bold"`
-					Italic        bool   `json:"italic"`
-					Underline     bool   `json:"underline"`
-					Strikethrough bool   `json:"strikethrough"`
-					Code          bool   `json:"code"`
-					Color         string `json:"color"`
-				} `json:"annotations"`
-				PlainText string `json:"plain_text"`
-				Href      string `json:"href"`
-			} `json:"title"`
-		} `json:"Title"`
-		Url string `json:"url"`
-	} `json:"properties"`
+	Archived   bool             `json:"archived"`
+	Url        string           `json:"url"`
+	Properties NotionProperties `json:"properties"`
 }
 
 type NotionPagesResponse struct {
@@ -133,41 +95,209 @@ type NotionPagesResponse struct {
 	NextCursor string                       `json:"next_cursor"`
 }
 
+type NotionUpdateBody struct {
+	Properties struct {
+		LatestReleaseUpdatedAt struct {
+			Date struct {
+				Start string `json:"start"`
+			} `json:"date"`
+		} `json:"Latest Release Updated At"`
+		LatestRelease struct {
+			Number float32 `json:"number"`
+		} `json:"Latest Release"`
+		SeenLatestRelease struct {
+			Checkbox bool `json:"checkbox"`
+		} `json:"Seen Latest Release"`
+		Status *struct {
+			MultiSelect []struct {
+				Color string `json:"color"`
+				Name  string `json:"name"`
+			} `json:"multi_select"`
+		} `json:"Status,omitempty"`
+	} `json:"properties"`
+}
+
+type NotionCreateBody struct {
+	Parent struct {
+		DatabaseID string `json:"database_id"`
+	} `json:"parent"`
+	Properties NotionProperties `json:"properties"`
+	Children   []struct {
+		Object string `json:"object"`
+		Type   string `json:"type"`
+		Image  struct {
+			Type     string `json:"type"`
+			External struct {
+				Url string `json:"url"`
+			} `json:"external"`
+		} `json:"image"`
+	} `json:"children"`
+}
+
 const (
-	Dropped    string = "Dropped"
-	DoneAiring string = "Done Airing"
-	Completed  string = "Completed"
+	Dropped         string = "Dropped"
+	DoneAiring      string = "Done Airing"
+	Completed       string = "Completed"
+	PlanningToRead  string = "Planning to Read"
+	PlanningToWatch string = "Planning to Watch"
+	Watching        string = "Watching"
+	Reading         string = "Reading"
+	OnHold          string = "On Hold"
 )
 
 var notionSecret string
 var notionDatabaseId string
 
+func getColorForStatus(status string) string {
+	switch status {
+	case Dropped:
+		return "brown"
+	case DoneAiring:
+		return "green"
+	case Completed:
+		return "pink"
+	case PlanningToRead:
+		return "purple"
+	case PlanningToWatch:
+		return "purple"
+	case Watching:
+		return "red"
+	case Reading:
+		return "red"
+	case OnHold:
+		return "blue"
+	default:
+		return ""
+	}
+}
+
 func Sync() {
 	err := godotenv.Load(".env")
 
 	if err != nil {
-		log.Fatalf("Error loading .env file, err: %s", err)
+		log.Fatalf("Error loading .env file, err: %s \n", err)
 	}
 
 	notionSecret = os.Getenv("NOTION_SECRET")
 	notionDatabaseId = os.Getenv("NOTION_DATABASE_ID")
 
 	elapsedTime := time.Since(time.Now())
-	log.Println("Starting sync")
+	log.Println("Starting sync \n")
 
-	// go SyncNotionPagesWithIntegrations()
+	// SyncNotionPagesWithIntegrations()
 	SyncMangaDexWithNotion()
 
-	log.Printf("Sync completed, time elapsed: %s", elapsedTime)
+	log.Printf("Sync completed, time elapsed: %s \n", elapsedTime)
 }
 
-func updateNotionPageLatestRelease(pageID string, latestChapter float32) {
+func updateNotionPage(pageID string, latestChapter float32, latestReleaseUpdatedAt string, status string) {
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
 
+	notionUpdateBody := NotionUpdateBody{}
+	notionUpdateBody.Properties.LatestRelease.Number = latestChapter
+	notionUpdateBody.Properties.SeenLatestRelease.Checkbox = false
+
+	if latestReleaseUpdatedAt != "" {
+		notionUpdateBody.Properties.LatestReleaseUpdatedAt.Date.Start = latestReleaseUpdatedAt
+	} else {
+		notionUpdateBody.Properties.LatestReleaseUpdatedAt.Date.Start = time.Now().Format("2006-01-02 15:04:05")
+	}
+
+	if status != "" {
+		notionUpdateBody.Properties.Status.MultiSelect = make([]struct {
+			Color string `json:"color"`
+			Name  string `json:"name"`
+		}, 1)
+		notionUpdateBody.Properties.Status.MultiSelect[0].Name = status
+		notionUpdateBody.Properties.Status.MultiSelect[0].Color = getColorForStatus(status)
+	}
+
+	body, _ := json.Marshal(notionUpdateBody)
+
+	req, _ := http.NewRequest("PATCH", "https://api.notion.com/v1/pages/"+pageID, bytes.NewBuffer(body))
+	req.Header.Add("Authorization", "Bearer "+notionSecret)
+	req.Header.Add("Notion-Version", "2021-08-16")
+	req.Header.Add("Content-Type", "application/json")
+	res, err := client.Do(req)
+
+	if err != nil || res.StatusCode != 200 {
+		log.Fatalf("Error updating notion page, pageID: %s err: %s \n", pageID, err)
+	}
+	defer res.Body.Close()
+}
+
+func createNotionPage(manga Manga) {
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	notionCreateBody := &NotionCreateBody{
+		Parent: struct {
+			DatabaseID string `json:"database_id"`
+		}{DatabaseID: notionDatabaseId},
+	}
+	notionCreateBody.Properties.Type.Select.Name = manga.Type
+	notionCreateBody.Properties.CurrentProgress.Number = manga.CurrentProgress
+	notionCreateBody.Properties.Link.Url = manga.Link
+	notionCreateBody.Properties.Status.MultiSelect = make([]struct {
+		Color string `json:"color"`
+		Name  string `json:"name"`
+	}, 1)
+	notionCreateBody.Properties.Status.MultiSelect[0].Name = manga.Status
+	notionCreateBody.Properties.Status.MultiSelect[0].Color = getColorForStatus(manga.Status)
+	notionCreateBody.Properties.LatestReleaseUpdatedAt.Date.Start = manga.LatestReleaseUpdatedAt
+	notionCreateBody.Properties.LatestRelease.Number = manga.LatestRelease
+	notionCreateBody.Properties.SeenLatestRelease.Checkbox = manga.SeenLatestRelease
+	notionCreateBody.Properties.Title.Title = make([]struct {
+		Text struct {
+			Content string `json:"content"`
+		} `json:"text"`
+	}, 1)
+	notionCreateBody.Properties.Title.Title[0].Text.Content = manga.Title
+	notionCreateBody.Children = make([]struct {
+		Object string `json:"object"`
+		Type   string `json:"type"`
+		Image  struct {
+			Type     string `json:"type"`
+			External struct {
+				Url string `json:"url"`
+			} `json:"external"`
+		} `json:"image"`
+	}, 1)
+	notionCreateBody.Children[0].Object = "block"
+	notionCreateBody.Children[0].Type = "image"
+	notionCreateBody.Children[0].Image.Type = "external"
+	notionCreateBody.Children[0].Image.External.Url = manga.Art
+
+	if manga.ReleaseSchedule != "" {
+		notionCreateBody.Properties.ReleaseSchedule.MultiSelect = make([]struct {
+			Name string `json:"name"`
+		}, 1)
+		notionCreateBody.Properties.ReleaseSchedule.MultiSelect[0].Name = manga.ReleaseSchedule
+	}
+
+	fmt.Printf("%+v", notionCreateBody)
+
+	body, _ := json.Marshal(notionCreateBody)
+
+	req, _ := http.NewRequest("POST", "https://api.notion.com/v1/pages", bytes.NewBuffer(body))
+	req.Header.Add("Authorization", "Bearer "+notionSecret)
+	req.Header.Add("Notion-Version", "2021-08-16")
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+
+	if err != nil || res.StatusCode != 200 {
+		log.Fatalf("Error creating notion page, mangaID: %s err: %s \n", manga.ID, err)
+	}
+	defer res.Body.Close()
 }
 
 func getNotionPages(includeMangaDex bool) []Manga {
 	client := &http.Client{
-		Timeout: time.Second * 10,
+		Timeout: time.Second * 30,
 	}
 	var nextCursor string
 	var pages []NotionPagesResponseResults
@@ -194,7 +324,7 @@ func getNotionPages(includeMangaDex bool) []Manga {
 		res, err := client.Do(req)
 
 		if err != nil || res.StatusCode != 200 {
-			log.Fatalf("Error retrieving database pages, err: %s", err)
+			log.Fatalf("Error retrieving database pages, err: %s \n", err)
 		}
 		defer res.Body.Close()
 
@@ -203,7 +333,7 @@ func getNotionPages(includeMangaDex bool) []Manga {
 		err = json.NewDecoder(res.Body).Decode(&notionPagesResponse)
 
 		if err != nil {
-			log.Fatalf("Error parsing response body, err: %s", err)
+			log.Fatalf("Error parsing response body, err: %s \n", err)
 		}
 
 		nextCursor = notionPagesResponse.NextCursor
@@ -266,19 +396,17 @@ func currentDay() string {
 func SyncNotionPagesWithIntegrations() {
 	mangas := getNotionPages(false)
 
-	if len(mangas) == 0 {
-		log.Fatalln("No mangas found (this means something has gone wrong parsing notion to custom model)")
-	}
+	if len(mangas) > 0 {
+		for _, manga := range mangas {
+			if manga.ReleaseSchedule == "" || manga.ReleaseSchedule == currentDay() && manga.Status != Completed || manga.Status == Dropped || manga.Status == DoneAiring {
+				if strings.Contains(manga.Link, "pahe.win") || strings.Contains(manga.Link, "animepahe.com") || strings.Contains(manga.Link, "toomics.com") {
+					go updateNotionPage(manga.ID, manga.LatestRelease+1, "", "")
+				} else {
+					latestChapter := CrawlManga(manga.Link, manga.LatestRelease)
 
-	for _, manga := range mangas {
-		if manga.ReleaseSchedule == "" || manga.ReleaseSchedule == currentDay() && manga.Status != Completed || manga.Status == Dropped || manga.Status == DoneAiring {
-			if strings.Contains(manga.Link, "pahe.win") || strings.Contains(manga.Link, "animepahe.com") || strings.Contains(manga.Link, "toomics.com") {
-				updateNotionPageLatestRelease(manga.ID, manga.LatestRelease+1)
-			} else {
-				latestChapter := CrawlManga(manga.Link, manga.LatestRelease)
-
-				if latestChapter != 0 || latestChapter != manga.LatestRelease {
-					updateNotionPageLatestRelease(manga.ID, latestChapter)
+					if latestChapter != 0 || latestChapter != manga.LatestRelease {
+						go updateNotionPage(manga.ID, latestChapter, "", "")
+					}
 				}
 			}
 		}
@@ -286,12 +414,30 @@ func SyncNotionPagesWithIntegrations() {
 }
 
 func SyncMangaDexWithNotion() {
-	mangas := getNotionPages(false)
+	notionMangas := getNotionPages(true)
+	mangas := SyncMangaDex()
 
-	// if len(mangas) == 0 {
-	// log.Fatalln("No mangas found (this means something has gone wrong parsing notion to custom model)")
-	//
+	if len(notionMangas) > 0 && len(mangas) > 0 {
+		fmt.Print("Test loop is running\n")
+		for _, manga := range mangas {
+			for key, notionManga := range notionMangas {
+				// Manga exists in notion and should be updated
+				if manga.Link == notionManga.Link {
+					log.Printf("Syncing %s \n", manga.Link)
 
-	// mangas := SyncMangaDex()
-
+					go updateNotionPage(notionManga.ID, manga.LatestRelease, manga.LatestReleaseUpdatedAt, manga.Status)
+					break
+				} else if key+1 == len(notionMangas) {
+					// Manga doesn't exist in notion and should be added
+					log.Printf("Creating new notion page for %s \n", manga.Link)
+					createNotionPage(manga)
+				}
+			}
+		}
+	} else if len(mangas) > 0 && len(notionMangas) == 0 {
+		for _, manga := range mangas {
+			log.Printf("Creating new notion page for %s \n", manga.Link)
+			createNotionPage(manga)
+		}
+	}
 }

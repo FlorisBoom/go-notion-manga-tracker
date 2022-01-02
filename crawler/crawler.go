@@ -10,7 +10,7 @@ import (
 )
 
 func CrawlManga(url string, latestRelease float32) float32 {
-	log.Printf("Starting sync for %s", url)
+	log.Printf("Syncing %s", url)
 
 	c := colly.NewCollector()
 	var latestChapter string
@@ -40,6 +40,12 @@ func CrawlManga(url string, latestRelease float32) float32 {
 			latestChapter = e.ChildText("li:first-child a")
 			latestChapter = re.FindString(latestChapter)
 		})
+	case strings.Contains(url, "toomics.com"):
+		c.OnHTML(".list-ep", func(e *colly.HTMLElement) {
+			latestChapter = e.ChildText(".normal_ep:last-child a .cell-num span")
+			latestChapter = re.FindString(latestChapter)
+		})
+		break
 	default:
 		break
 	}
