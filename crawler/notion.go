@@ -16,7 +16,7 @@ type Manga struct {
 	Type                   string
 	Title                  string
 	Link                   string
-	Status                 string
+	Status                 []string
 	CurrentProgress        float32
 	LatestRelease          float32
 	SeenLatestRelease      bool
@@ -184,8 +184,8 @@ func Sync() {
 	elapsedTime := time.Since(time.Now())
 	log.Println("Starting sync \n")
 
-	go SyncNotionPagesWithIntegrations()
-	SyncMangaDexWithNotion()
+	SyncNotionPagesWithIntegrations()
+	go SyncMangaDexWithNotion()
 
 	log.Printf("Sync completed, time elapsed: %s \n", elapsedTime)
 }
@@ -250,8 +250,8 @@ func createNotionPage(manga Manga) {
 		Color string `json:"color"`
 		Name  string `json:"name"`
 	}, 1)
-	notionCreateBody.Properties.Status.MultiSelect[0].Name = manga.Status
-	notionCreateBody.Properties.Status.MultiSelect[0].Color = getColorForStatus(manga.Status)
+	notionCreateBody.Properties.Status.MultiSelect[0].Name = manga.Status[0]
+	notionCreateBody.Properties.Status.MultiSelect[0].Color = getColorForStatus(manga.Status[0])
 	notionCreateBody.Properties.LatestReleaseUpdatedAt.Date.Start = manga.LatestReleaseUpdatedAt
 	notionCreateBody.Properties.LatestRelease.Number = manga.LatestRelease
 	notionCreateBody.Properties.SeenLatestRelease.Checkbox = manga.SeenLatestRelease
@@ -356,7 +356,6 @@ func getNotionPages(includeMangaDex bool) []Manga {
 			Type:                   page.Properties.Type.Select.Name,
 			Title:                  page.Properties.Title.Title[0].Text.Content,
 			Link:                   page.Properties.Link.Url,
-			Status:                 page.Properties.Status.MultiSelect[0].Name,
 			CurrentProgress:        page.Properties.CurrentProgress.Number,
 			LatestRelease:          page.Properties.LatestRelease.Number,
 			LatestReleaseUpdatedAt: page.Properties.LatestReleaseUpdatedAt.Date.Start,
@@ -369,6 +368,13 @@ func getNotionPages(includeMangaDex bool) []Manga {
 			manga.ReleaseSchedule = page.Properties.ReleaseSchedule.MultiSelect[0].Name
 		}
 
+		var statusses []string
+		for _, status := range page.Properties.Status.MultiSelect {
+			statusses = append(statusses, status.Name)
+		}
+
+		manga.Status = statusses
+
 		mangas = append(mangas, manga)
 	}
 
@@ -376,26 +382,18 @@ func getNotionPages(includeMangaDex bool) []Manga {
 }
 
 func currentDay() string {
-	day := time.Now().Day()
+	day := time.Now().Weekday()
+	return string(day)
+}
 
-	switch day {
-	case 1:
-		return "Monday"
-	case 2:
-		return "Tuesday"
-	case 3:
-		return "Wednesday"
-	case 4:
-		return "Thursday"
-	case 5:
-		return "Friday"
-	case 6:
-		return "Saturday"
-	case 7:
-		return "Sunday"
-	default:
-		return ""
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
 	}
+
+	return false
 }
 
 func SyncNotionPagesWithIntegrations() {
@@ -403,13 +401,13 @@ func SyncNotionPagesWithIntegrations() {
 
 	if len(mangas) > 0 {
 		for _, manga := range mangas {
-			if manga.ReleaseSchedule == "" || manga.ReleaseSchedule == currentDay() && manga.Status != Completed || manga.Status == Dropped || manga.Status == DoneAiring {
+			if manga.ReleaseSchedule == "" || manga.ReleaseSchedule == currentDay() && !contains(manga.Status, Completed) || !contains(manga.Status, Dropped) || !contains(manga.Status, DoneAiring) {
 				if strings.Contains(manga.Link, "pahe.win") || strings.Contains(manga.Link, "animepahe.com") || strings.Contains(manga.Link, "toomics.com") {
 					go updateNotionPage(manga.ID, manga.LatestRelease+1, "", "")
 				} else {
 					latestChapter := CrawlManga(manga.Link, manga.LatestRelease)
 
-					if latestChapter != 0 || latestChapter != manga.LatestRelease {
+					if latestChapter != 0 && latestChapter > manga.LatestRelease {
 						go updateNotionPage(manga.ID, latestChapter, "", "")
 					}
 				}
@@ -429,7 +427,7 @@ func SyncMangaDexWithNotion() {
 				if manga.Link == notionManga.Link {
 					log.Printf("Syncing %s \n", manga.Link)
 
-					go updateNotionPage(notionManga.ID, manga.LatestRelease, manga.LatestReleaseUpdatedAt, manga.Status)
+					go updateNotionPage(notionManga.ID, manga.LatestRelease, manga.LatestReleaseUpdatedAt, manga.Status[0])
 					break
 				} else if key+1 == len(notionMangas) {
 					// Manga doesn't exist in notion and should be added
