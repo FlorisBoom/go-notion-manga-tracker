@@ -7,7 +7,7 @@ import (
 
 func main() {
 	c := cron.New()
-	c.AddFunc("59 0/1 * * *", func() {
+	c.AddFunc("@hourly", func() {
 		crawler.Sync()
 	})
 

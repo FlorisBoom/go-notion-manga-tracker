@@ -93,6 +93,13 @@ type NotionPagesResponse struct {
 	NextCursor string                       `json:"next_cursor"`
 }
 
+type Status struct {
+	MultiSelect []struct {
+		Color string `json:"color"`
+		Name  string `json:"name"`
+	} `json:"multi_select"`
+}
+
 type NotionUpdateBody struct {
 	Properties struct {
 		LatestReleaseUpdatedAt struct {
@@ -106,12 +113,7 @@ type NotionUpdateBody struct {
 		SeenLatestRelease struct {
 			Checkbox bool `json:"checkbox"`
 		} `json:"Seen Latest Release"`
-		Status *struct {
-			MultiSelect []struct {
-				Color string `json:"color"`
-				Name  string `json:"name"`
-			} `json:"multi_select"`
-		} `json:"Status,omitempty"`
+		Status *Status `json:"Status,omitempty"`
 	} `json:"properties"`
 }
 
@@ -204,12 +206,17 @@ func updateNotionPage(pageID string, latestChapter float32, latestReleaseUpdated
 	}
 
 	if status != "" {
-		notionUpdateBody.Properties.Status.MultiSelect = make([]struct {
-			Color string `json:"color"`
-			Name  string `json:"name"`
-		}, 1)
-		notionUpdateBody.Properties.Status.MultiSelect[0].Name = status
-		notionUpdateBody.Properties.Status.MultiSelect[0].Color = getColorForStatus(status)
+		notionUpdateBody.Properties.Status = &Status{
+			MultiSelect: []struct {
+				Color string `json:"color"`
+				Name  string `json:"name"`
+			}{
+				{
+					Color: getColorForStatus(status),
+					Name:  status,
+				},
+			},
+		}
 	}
 
 	body, _ := json.Marshal(notionUpdateBody)
@@ -416,7 +423,6 @@ func SyncMangaDexWithNotion() {
 	mangas := SyncMangaDex()
 
 	if len(notionMangas) > 0 && len(mangas) > 0 {
-		fmt.Print("Test loop is running\n")
 		for _, manga := range mangas {
 			for key, notionManga := range notionMangas {
 				// Manga exists in notion and should be updated
