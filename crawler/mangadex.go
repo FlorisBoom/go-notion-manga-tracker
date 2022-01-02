@@ -121,7 +121,11 @@ func getAllMangasIds() map[string]interface{} {
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := client.Do(req)
 
-	if err != nil || res.StatusCode != 200 {
+	if res.StatusCode == 429 {
+		authorization()
+
+		time.Sleep(time.Second * 11)
+	} else if err != nil || res.StatusCode != 200 {
 		if res.StatusCode == 401 {
 			authorization()
 		} else {
@@ -155,7 +159,11 @@ func getManga(mangaId string, status string) Manga {
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := client.Do(req)
 
-	if err != nil || res.StatusCode != 200 {
+	if res.StatusCode == 429 {
+		authorization()
+
+		time.Sleep(time.Second * 11)
+	} else if err != nil || res.StatusCode != 200 {
 		if res.StatusCode == 401 {
 			authorization()
 
@@ -227,7 +235,11 @@ func getChapterForManga(mangaId string) float32 {
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := client.Do(req)
 
-	if err != nil || res.StatusCode != 200 {
+	if res.StatusCode == 429 {
+		authorization()
+
+		time.Sleep(time.Second * 11)
+	} else if err != nil || res.StatusCode != 200 {
 		if res.StatusCode == 401 {
 			authorization()
 
