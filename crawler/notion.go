@@ -402,7 +402,7 @@ func SyncNotionPagesWithIntegrations() {
 	if len(mangas) > 0 {
 		for _, manga := range mangas {
 			if manga.ReleaseSchedule == "" || manga.ReleaseSchedule == currentDay() && !contains(manga.Status, Completed) || !contains(manga.Status, Dropped) || !contains(manga.Status, DoneAiring) {
-				if strings.Contains(manga.Link, "pahe.win") || strings.Contains(manga.Link, "animepahe.com") || strings.Contains(manga.Link, "toomics.com") {
+				if strings.Contains(manga.Link, "pahe.win") || strings.Contains(manga.Link, "animepahe.com") {
 					go updateNotionPage(manga.ID, manga.LatestRelease+1, "", "")
 				} else {
 					latestChapter := CrawlManga(manga.Link, manga.LatestRelease)
