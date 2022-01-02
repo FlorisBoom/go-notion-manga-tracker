@@ -184,7 +184,7 @@ func Sync() {
 	elapsedTime := time.Since(time.Now())
 	log.Println("Starting sync \n")
 
-	// SyncNotionPagesWithIntegrations()
+	go SyncNotionPagesWithIntegrations()
 	SyncMangaDexWithNotion()
 
 	log.Printf("Sync completed, time elapsed: %s \n", elapsedTime)
@@ -430,14 +430,14 @@ func SyncMangaDexWithNotion() {
 				} else if key+1 == len(notionMangas) {
 					// Manga doesn't exist in notion and should be added
 					log.Printf("Creating new notion page for %s \n", manga.Link)
-					createNotionPage(manga)
+					go createNotionPage(manga)
 				}
 			}
 		}
 	} else if len(mangas) > 0 && len(notionMangas) == 0 {
 		for _, manga := range mangas {
 			log.Printf("Creating new notion page for %s \n", manga.Link)
-			createNotionPage(manga)
+			go createNotionPage(manga)
 		}
 	}
 }
