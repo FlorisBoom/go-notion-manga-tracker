@@ -198,31 +198,31 @@ func getManga(mangaId string, status string) Manga {
 	var statusses []string
 	switch status {
 	case "plan_to_read":
-		statusses[0] = PlanningToRead
+		statusses = append(statusses, PlanningToRead)
 		manga.Status = statusses
 		break
 	case "reading":
-		statusses[0] = Reading
+		statusses = append(statusses, Reading)
 		manga.Status = statusses
 		break
 	case "re_reading":
-		statusses[0] = Reading
+		statusses = append(statusses, Reading)
 		manga.Status = statusses
 		break
 	case "completed":
-		statusses[0] = Completed
+		statusses = append(statusses, Completed)
 		manga.Status = statusses
 		break
 	case "on_hold":
-		statusses[0] = OnHold
+		statusses = append(statusses, OnHold)
 		manga.Status = statusses
 		break
 	case "dropped":
-		statusses[0] = Dropped
+		statusses = append(statusses, Dropped)
 		manga.Status = statusses
 		break
 	default:
-		statusses[0] = PlanningToRead
+		statusses = append(statusses, PlanningToRead)
 		manga.Status = statusses
 		break
 	}
