@@ -128,6 +128,8 @@ func getAllMangasIds() map[string]interface{} {
 	} else if err != nil || res.StatusCode != 200 {
 		if res.StatusCode == 401 {
 			authorization()
+
+			return getAllMangasIds()
 		} else {
 			log.Fatalf("Error retrieving manga statuses from mangadex, err: %s \n", err)
 		}

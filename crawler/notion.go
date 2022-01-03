@@ -283,8 +283,6 @@ func createNotionPage(manga Manga) {
 		notionCreateBody.Properties.ReleaseSchedule.MultiSelect[0].Name = manga.ReleaseSchedule
 	}
 
-	fmt.Printf("%+v", notionCreateBody)
-
 	body, _ := json.Marshal(notionCreateBody)
 
 	req, _ := http.NewRequest("POST", "https://api.notion.com/v1/pages", bytes.NewBuffer(body))
@@ -404,7 +402,6 @@ func syncNotionPagesWithIntegrations() {
 			if manga.ReleaseSchedule == "" || manga.ReleaseSchedule == currentDay() {
 				if !(contains(manga.Status, Completed) || contains(manga.Status, Dropped) || contains(manga.Status, DoneAiring)) {
 					if strings.Contains(manga.Link, "pahe.win") || strings.Contains(manga.Link, "animepahe.com") {
-						fmt.Printf("%+v \n", manga)
 						go updateNotionPage(manga.ID, manga.LatestRelease+1, "", "")
 					} else {
 						latestChapter := CrawlManga(manga.Link, manga.LatestRelease)
