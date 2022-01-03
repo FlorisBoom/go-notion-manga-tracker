@@ -184,8 +184,8 @@ func Sync() {
 	elapsedTime := time.Since(time.Now())
 	log.Println("Starting sync \n")
 
-	// SyncNotionPagesWithIntegrations()
-	// go SyncMangaDexWithNotion()
+	syncNotionPagesWithIntegrations()
+	go syncMangaDexWithNotion()
 
 	log.Printf("Sync completed, time elapsed: %s \n", elapsedTime)
 }
@@ -396,19 +396,22 @@ func contains(s []string, str string) bool {
 	return false
 }
 
-func SyncNotionPagesWithIntegrations() {
+func syncNotionPagesWithIntegrations() {
 	mangas := getNotionPages(false)
 
 	if len(mangas) > 0 {
 		for _, manga := range mangas {
-			if manga.ReleaseSchedule == "" || manga.ReleaseSchedule == currentDay() && !contains(manga.Status, Completed) || !contains(manga.Status, Dropped) || !contains(manga.Status, DoneAiring) {
-				if strings.Contains(manga.Link, "pahe.win") || strings.Contains(manga.Link, "animepahe.com") {
-					go updateNotionPage(manga.ID, manga.LatestRelease+1, "", "")
-				} else {
-					latestChapter := CrawlManga(manga.Link, manga.LatestRelease)
+			if manga.ReleaseSchedule == "" || manga.ReleaseSchedule == currentDay() {
+				if !(contains(manga.Status, Completed) || contains(manga.Status, Dropped) || contains(manga.Status, DoneAiring)) {
+					if strings.Contains(manga.Link, "pahe.win") || strings.Contains(manga.Link, "animepahe.com") {
+						fmt.Printf("%+v \n", manga)
+						go updateNotionPage(manga.ID, manga.LatestRelease+1, "", "")
+					} else {
+						latestChapter := CrawlManga(manga.Link, manga.LatestRelease)
 
-					if latestChapter != 0 && latestChapter > manga.LatestRelease {
-						go updateNotionPage(manga.ID, latestChapter, "", "")
+						if latestChapter != 0 && latestChapter > manga.LatestRelease {
+							go updateNotionPage(manga.ID, latestChapter, "", "")
+						}
 					}
 				}
 			}
@@ -416,23 +419,25 @@ func SyncNotionPagesWithIntegrations() {
 	}
 }
 
-func SyncMangaDexWithNotion() {
+func syncMangaDexWithNotion() {
 	notionMangas := getNotionPages(true)
 	mangas := SyncMangaDex()
 
 	if len(notionMangas) > 0 && len(mangas) > 0 {
 		for _, manga := range mangas {
-			for key, notionManga := range notionMangas {
-				// Manga exists in notion and should be updated
-				if manga.Link == notionManga.Link {
-					log.Printf("Syncing %s \n", manga.Link)
+			if !(contains(manga.Status, Completed) || contains(manga.Status, Dropped) || contains(manga.Status, DoneAiring)) {
+				for key, notionManga := range notionMangas {
+					// Manga exists in notion and should be updated
+					if manga.Link == notionManga.Link {
+						log.Printf("Syncing %s \n", manga.Link)
 
-					go updateNotionPage(notionManga.ID, manga.LatestRelease, manga.LatestReleaseUpdatedAt, manga.Status[0])
-					break
-				} else if key+1 == len(notionMangas) {
-					// Manga doesn't exist in notion and should be added
-					log.Printf("Creating new notion page for %s \n", manga.Link)
-					go createNotionPage(manga)
+						go updateNotionPage(notionManga.ID, manga.LatestRelease, manga.LatestReleaseUpdatedAt, manga.Status[0])
+						break
+					} else if key+1 == len(notionMangas) {
+						// Manga doesn't exist in notion and should be added
+						log.Printf("Creating new notion page for %s \n", manga.Link)
+						go createNotionPage(manga)
+					}
 				}
 			}
 		}
