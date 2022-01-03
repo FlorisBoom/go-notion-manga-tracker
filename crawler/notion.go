@@ -184,8 +184,8 @@ func Sync() {
 	elapsedTime := time.Since(time.Now())
 	log.Println("Starting sync \n")
 
-	SyncNotionPagesWithIntegrations()
-	go SyncMangaDexWithNotion()
+	// SyncNotionPagesWithIntegrations()
+	// go SyncMangaDexWithNotion()
 
 	log.Printf("Sync completed, time elapsed: %s \n", elapsedTime)
 }

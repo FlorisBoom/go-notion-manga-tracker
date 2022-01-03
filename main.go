@@ -1,11 +1,16 @@
 package main
 
-func main() {
-	// c := cron.New()
-	// c.AddFunc("@hourly", func() {
-	// 	crawler.Sync()
-	// })
+import (
+	"github.com/florisboom/go-notion-manga-tracker/crawler"
+	"github.com/robfig/cron"
+)
 
-	// c.Start()
+func main() {
+	c := cron.New()
+	c.AddFunc("@hourly", func() {
+		crawler.Sync()
+	})
+
+	c.Start()
 	select {}
 }
