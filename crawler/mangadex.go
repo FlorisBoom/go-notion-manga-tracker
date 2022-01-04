@@ -221,6 +221,10 @@ func getManga(mangaId string, status string) Manga {
 		break
 	}
 
+	if mangaResponse.Data.Attributes.Status == "completed" {
+		statusses = append(statusses, DoneAiring)
+	}
+
 	if mangaResponse.Data.Attributes.LastChapter != "" {
 		i, _ := strconv.ParseFloat(mangaResponse.Data.Attributes.LastChapter, 32)
 		manga.LatestRelease = float32(i)
