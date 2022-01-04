@@ -249,8 +249,13 @@ func createNotionPage(manga Manga) {
 	notionCreateBody.Properties.Status.MultiSelect = make([]struct {
 		Color string `json:"color"`
 		Name  string `json:"name"`
-	}, 1)
-	notionCreateBody.Properties.Status.MultiSelect[0].Name = manga.Status[0]
+	}, len(manga.Status))
+
+	for key, _ := range manga.Status {
+		notionCreateBody.Properties.Status.MultiSelect[key].Name = manga.Status[key]
+
+	}
+
 	notionCreateBody.Properties.Status.MultiSelect[0].Color = getColorForStatus(manga.Status[0])
 	notionCreateBody.Properties.LatestReleaseUpdatedAt.Date.Start = manga.LatestReleaseUpdatedAt
 	notionCreateBody.Properties.LatestRelease.Number = manga.LatestRelease
