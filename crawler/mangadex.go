@@ -34,12 +34,6 @@ type MangaResponse struct {
 			Title struct {
 				En string `json:"en"`
 			}
-			altTitles []struct {
-				En string `json:"en"`
-			} `json:"alt_titles"`
-			Description struct {
-				En string `json:"en"`
-			}
 			Links                  interface{}   `json:"links"`
 			OriginalLanguage       string        `json:"originalLanguage"`
 			LastVolume             string        `json:"lastVolume"`
@@ -65,7 +59,7 @@ type MangaResponse struct {
 				UpdatedAt   string `json:"updatedAt"`
 				Version     int    `json:"version"`
 			}
-		} `json:"relationships"`
+		} `json:"relationships, omitempty"`
 	} `json:"data"`
 }
 
@@ -265,7 +259,7 @@ func getChapterForManga(mangaId string) float32 {
 	err = json.NewDecoder(res.Body).Decode(&chapterResponse)
 
 	if err != nil {
-		log.Fatalf("Error parsing response body for manga detail, err: %s \n", err)
+		log.Fatalf("Error parsing response body for manga chapters, mangaId: %s err: %s \n", mangaId, err)
 	}
 
 	i, _ := strconv.ParseFloat(chapterResponse.Data[0].Attributes.Chapter, 32)
@@ -279,10 +273,30 @@ func SyncMangaDex() []Manga {
 	idsAndStatusesMap := getAllMangasIds()
 
 	var mangas []Manga
+	batchRequestCount := 60
+	loopCount := 0
+	i := 0
 
-	for id, status := range idsAndStatusesMap {
-		manga := getManga(id, fmt.Sprintf("%s", status))
-		mangas = append(mangas, manga)
+	for {
+		for id, status := range idsAndStatusesMap {
+			i++
+
+			manga := getManga(id, fmt.Sprintf("%s", status))
+			mangas = append(mangas, manga)
+			delete(idsAndStatusesMap, id)
+
+			if i == batchRequestCount {
+				loopCount++
+				i = 0
+				break
+			}
+		}
+
+		time.Sleep(time.Second * 10)
+
+		if loopCount >= len(idsAndStatusesMap) {
+			break
+		}
 	}
 
 	return mangas
