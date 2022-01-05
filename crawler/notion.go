@@ -433,7 +433,10 @@ func syncMangaDexWithNotion() {
 					if manga.Link == notionManga.Link {
 						log.Printf("Syncing %s \n", manga.Link)
 
-						go updateNotionPage(notionManga.ID, manga.LatestRelease, manga.LatestReleaseUpdatedAt, manga.Status[0])
+						if manga.LatestRelease > notionManga.LatestRelease {
+							go updateNotionPage(notionManga.ID, manga.LatestRelease, manga.LatestReleaseUpdatedAt, manga.Status[0])
+						}
+
 						break
 					} else if key+1 == len(notionMangas) {
 						// Manga doesn't exist in notion and should be added
