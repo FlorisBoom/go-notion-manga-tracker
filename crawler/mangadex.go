@@ -33,6 +33,7 @@ type MangaResponse struct {
 		Attributes struct {
 			Title struct {
 				En string `json:"en"`
+				Jp string `json:"jp"`
 			}
 			Links                  interface{}   `json:"links"`
 			OriginalLanguage       string        `json:"originalLanguage"`
@@ -180,7 +181,6 @@ func getManga(mangaId string, status string) Manga {
 
 	manga := Manga{
 		Type:                   "Manga",
-		Title:                  mangaResponse.Data.Attributes.Title.En,
 		Link:                   "https://mangadex.org/title/" + mangaResponse.Data.ID,
 		CurrentProgress:        0,
 		SeenLatestRelease:      false,
@@ -188,12 +188,25 @@ func getManga(mangaId string, status string) Manga {
 		LatestReleaseUpdatedAt: mangaResponse.Data.Attributes.UpdatedAt,
 	}
 
+	if mangaResponse.Data.Attributes.Title.Jp != "" {
+		manga.Title = mangaResponse.Data.Attributes.Title.Jp
+	} else if mangaResponse.Data.Attributes.Title.En != "" {
+		manga.Title = mangaResponse.Data.Attributes.Title.En
+	}
+
+	var coverArt string
+	for _, relation := range mangaResponse.Data.Relationships {
+		if relation.Type == "cover_art" {
+			coverArt = relation.Attributes.FileName
+		}
+	}
+
 	// Check if cover image exists
-	_, err = http.Head(fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s", mangaId, mangaResponse.Data.Relationships[len(mangaResponse.Data.Relationships)-1].Attributes.FileName))
+	_, err = http.Head(fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s", mangaId, coverArt))
 	if err != nil {
-		manga.Art = fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s.512.jpg", mangaId, mangaResponse.Data.Relationships[len(mangaResponse.Data.Relationships)-1].Attributes.FileName)
+		manga.Art = fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s", mangaId, coverArt)
 	} else {
-		manga.Art = fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s", mangaId, mangaResponse.Data.Relationships[len(mangaResponse.Data.Relationships)-1].Attributes.FileName)
+		manga.Art = fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s.512.jpg", mangaId, coverArt)
 	}
 
 	var statusses []string
