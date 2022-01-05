@@ -186,7 +186,14 @@ func getManga(mangaId string, status string) Manga {
 		SeenLatestRelease:      false,
 		ReleaseSchedule:        "",
 		LatestReleaseUpdatedAt: mangaResponse.Data.Attributes.UpdatedAt,
-		Art:                    fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s.512.jpg", mangaId, mangaResponse.Data.Relationships[len(mangaResponse.Data.Relationships)-1].Attributes.FileName),
+	}
+
+	// Check if cover image exists
+	_, err = http.Head(fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s", mangaId, mangaResponse.Data.Relationships[len(mangaResponse.Data.Relationships)-1].Attributes.FileName))
+	if err != nil {
+		manga.Art = fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s.512.jpg", mangaId, mangaResponse.Data.Relationships[len(mangaResponse.Data.Relationships)-1].Attributes.FileName)
+	} else {
+		manga.Art = fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s", mangaId, mangaResponse.Data.Relationships[len(mangaResponse.Data.Relationships)-1].Attributes.FileName)
 	}
 
 	var statusses []string
