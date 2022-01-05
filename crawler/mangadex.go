@@ -76,6 +76,7 @@ type ChapterResponse struct {
 			Title              string `json:"title"`
 			translatedLanguage string `json:"translatedLanguage"`
 			hash               string `json:"hash"`
+			UpdatedAt          string `json:"updatedAt"`
 		}
 	} `json:"data"`
 }
@@ -180,12 +181,11 @@ func getManga(mangaId string, status string) Manga {
 	}
 
 	manga := Manga{
-		Type:                   "Manga",
-		Link:                   "https://mangadex.org/title/" + mangaResponse.Data.ID,
-		CurrentProgress:        0,
-		SeenLatestRelease:      false,
-		ReleaseSchedule:        "",
-		LatestReleaseUpdatedAt: mangaResponse.Data.Attributes.UpdatedAt,
+		Type:              "Manga",
+		Link:              "https://mangadex.org/title/" + mangaResponse.Data.ID,
+		CurrentProgress:   0,
+		SeenLatestRelease: false,
+		ReleaseSchedule:   "",
 	}
 
 	if mangaResponse.Data.Attributes.Title.Jp != "" {
@@ -249,13 +249,15 @@ func getManga(mangaId string, status string) Manga {
 		i, _ := strconv.ParseFloat(mangaResponse.Data.Attributes.LastChapter, 32)
 		manga.LatestRelease = float32(i)
 	} else {
-		manga.LatestRelease = getChapterForManga(mangaId)
+		latestRelease, updatedAt := getChapterForManga(mangaId)
+		manga.LatestRelease = latestRelease
+		manga.LatestReleaseUpdatedAt = updatedAt
 	}
 
 	return manga
 }
 
-func getChapterForManga(mangaId string) float32 {
+func getChapterForManga(mangaId string) (float32, string) {
 	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
@@ -288,7 +290,7 @@ func getChapterForManga(mangaId string) float32 {
 
 	i, _ := strconv.ParseFloat(chapterResponse.Data[0].Attributes.Chapter, 32)
 
-	return float32(i)
+	return float32(i), chapterResponse.Data[0].Attributes.UpdatedAt
 }
 
 func SyncMangaDex() []Manga {
