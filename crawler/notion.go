@@ -253,7 +253,7 @@ func createNotionPage(manga Manga) {
 
 	for key, _ := range manga.Status {
 		notionCreateBody.Properties.Status.MultiSelect[key].Name = manga.Status[key]
-
+		notionCreateBody.Properties.Status.MultiSelect[key].Color = getColorForStatus(manga.Status[key])
 	}
 
 	notionCreateBody.Properties.Status.MultiSelect[0].Color = getColorForStatus(manga.Status[0])

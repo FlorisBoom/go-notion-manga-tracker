@@ -243,6 +243,7 @@ func getManga(mangaId string, status string) Manga {
 
 	if mangaResponse.Data.Attributes.Status == "completed" {
 		statusses = append(statusses, DoneAiring)
+		manga.Status = statusses
 	}
 
 	if mangaResponse.Data.Attributes.LastChapter != "" {
