@@ -314,18 +314,17 @@ func getNotionPages(includeMangaDex bool) []Manga {
 		var body *strings.Reader
 
 		if nextCursor != "" && !includeMangaDex {
-			body = strings.NewReader(fmt.Sprintf("{\"start_cursor\": \"%s\"}", nextCursor))
+			body = strings.NewReader(fmt.Sprintf("{\"start_cursor\": \"%s\", \"filter\": {\"property\": \"Link\", \"url\": { \"does_not_contain\": \"mangadex\" }}}", nextCursor))
 		} else if includeMangaDex && nextCursor == "" {
-			body = strings.NewReader("{\"filter\": {\"property\": \"Link\", \"text\": { \"contains\": \"mangadex\" }}}")
+			body = strings.NewReader("{\"filter\": {\"property\": \"Link\", \"url\": { \"contains\": \"mangadex\" }}}")
 		} else if includeMangaDex && nextCursor != "" {
-			body = strings.NewReader(fmt.Sprintf("{\"filter\": {\"property\": \"Link\", \"text\": { \"contains\": \"mangadex\" }}, \"start_cursor\": \"%s\"}", nextCursor))
+			body = strings.NewReader(fmt.Sprintf("{\"filter\": {\"property\": \"Link\", \"url\": { \"contains\": \"mangadex\" }}, \"start_cursor\": \"%s\"}", nextCursor))
+		} else if !includeMangaDex && nextCursor == "" {
+			body = strings.NewReader("{\"filter\": {\"property\": \"Link\", \"url\": { \"does_not_contain\": \"mangadex\" }}}")
 		}
 
-		req, _ := http.NewRequest("POST", fmt.Sprintf("https://api.notion.com/v1/databases/%s/query", notionDatabaseId), nil)
-		if body != nil {
-			req, _ = http.NewRequest("POST", fmt.Sprintf("https://api.notion.com/v1/databases/%s/query", notionDatabaseId), body)
+		req, _ := http.NewRequest("POST", fmt.Sprintf("https://api.notion.com/v1/databases/%s/query", notionDatabaseId), body)
 
-		}
 		req.Header.Add("Authorization", "Bearer "+notionSecret)
 		req.Header.Add("Notion-Version", "2021-08-16")
 		req.Header.Add("Content-Type", "application/json")
