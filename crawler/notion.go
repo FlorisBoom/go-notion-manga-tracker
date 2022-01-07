@@ -171,7 +171,10 @@ func getColorForStatus(status string) string {
 	}
 }
 
+var loc *time.Location
+
 func Sync() {
+	loc, _ = time.LoadLocation("Europe/Amsterdam")
 	// err := godotenv.Load(".env")
 
 	// if err != nil {
@@ -202,7 +205,7 @@ func updateNotionPage(pageID string, latestChapter float32, latestReleaseUpdated
 	if latestReleaseUpdatedAt != "" {
 		notionUpdateBody.Properties.LatestReleaseUpdatedAt.Date.Start = latestReleaseUpdatedAt
 	} else {
-		notionUpdateBody.Properties.LatestReleaseUpdatedAt.Date.Start = time.Now().Format("2006-01-02 15:04:05")
+		notionUpdateBody.Properties.LatestReleaseUpdatedAt.Date.Start = time.Now().In(loc).Format("2006-01-02 15:04:05")
 	}
 
 	if status != "" {
@@ -406,7 +409,10 @@ func syncNotionPagesWithIntegrations() {
 			if manga.ReleaseSchedule == "" || manga.ReleaseSchedule == currentDay() {
 				if !(contains(manga.Status, Completed) || contains(manga.Status, Dropped) || contains(manga.Status, DoneAiring)) {
 					if strings.Contains(manga.Link, "pahe.win") || strings.Contains(manga.Link, "animepahe.com") {
-						go updateNotionPage(manga.ID, manga.LatestRelease+1, "", "")
+						t, _ := time.Parse("2006-01-02", manga.LatestReleaseUpdatedAt)
+						if t.String() != time.Now().In(loc).Format("2006-01-02") {
+							go updateNotionPage(manga.ID, manga.LatestRelease+1, "", "")
+						}
 					} else {
 						latestChapter := CrawlManga(manga.Link, manga.LatestRelease)
 
