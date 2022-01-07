@@ -409,8 +409,8 @@ func syncNotionPagesWithIntegrations() {
 			if manga.ReleaseSchedule == "" || manga.ReleaseSchedule == currentDay() {
 				if !(contains(manga.Status, Completed) || contains(manga.Status, Dropped) || contains(manga.Status, DoneAiring)) {
 					if strings.Contains(manga.Link, "pahe.win") || strings.Contains(manga.Link, "animepahe.com") {
-						t, _ := time.Parse("2006-01-02", manga.LatestReleaseUpdatedAt)
-						if t.String() != time.Now().In(loc).Format("2006-01-02") {
+						t, _ := time.Parse("2006-01-02T15:04:05.000+03:00", manga.LatestReleaseUpdatedAt)
+						if t.Format("2006-01-02") != time.Now().In(loc).Format("2006-01-02") {
 							go updateNotionPage(manga.ID, manga.LatestRelease+1, "", "")
 						}
 					} else {
