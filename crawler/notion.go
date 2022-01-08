@@ -387,7 +387,7 @@ func getNotionPages(includeMangaDex bool) []Manga {
 }
 
 func currentDay() string {
-	day := time.Now().Weekday()
+	day := time.Now().In(loc).Weekday()
 	return day.String()
 }
 
