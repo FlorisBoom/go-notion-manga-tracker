@@ -262,7 +262,8 @@ func getChapterForManga(mangaId string) (float32, string) {
 	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
-	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.mangadex.org/chapter?manga=%s&order[chapter]=desc", mangaId), nil)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.mangadex.org/chapter?manga=%s&order[chapter]=desc&translatedLanguage[]=en", mangaId), nil)
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := client.Do(req)
 
