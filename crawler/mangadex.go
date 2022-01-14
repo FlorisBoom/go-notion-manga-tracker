@@ -3,6 +3,7 @@ package crawler
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -16,7 +17,14 @@ type AuthResponse struct {
 	Token  struct {
 		Session string `json:"session"`
 		Refresh string `json:"refresh"`
-	} `json:"token"`
+	} `json:"token,omitempty"`
+	Errors []struct {
+		ID      string `json:"id"`
+		Status  int    `json:"status"`
+		Title   string `json:"title"`
+		Detail  string `json:"detail"`
+		Context string `json:"context"`
+	} `json:"errors,omitempty"`
 }
 
 type StatusResponse struct {
@@ -32,22 +40,14 @@ type MangaResponse struct {
 		Type       string `json:"type"`
 		Attributes struct {
 			Title struct {
-				En string `json:"en"`
-				Jp string `json:"jp"`
+				En string `json:"en,omitempty"`
+				Jp string `json:"jp,omitempty"`
 			}
-			Links                  interface{}   `json:"links"`
-			OriginalLanguage       string        `json:"originalLanguage"`
-			LastVolume             string        `json:"lastVolume"`
-			LastChapter            string        `json:"lastChapter"`
-			PublicationDemographic string        `json:"publicationDemographic"`
-			Status                 string        `json:"status"`
-			Year                   int           `json:"year"`
-			ContentRating          string        `json:"contentRating"`
-			tags                   []interface{} `json:"tags"`
-			State                  string        `json:"state"`
-			CreatedAt              string        `json:"createdAt"`
-			UpdatedAt              string        `json:"updatedAt"`
-			Version                int           `json:"version"`
+			LastVolume  string `json:"lastVolume"`
+			LastChapter string `json:"lastChapter"`
+			Status      string `json:"status"`
+			CreatedAt   string `json:"createdAt"`
+			UpdatedAt   string `json:"updatedAt"`
 		} `json:"attributes"`
 		Relationships []struct {
 			ID         string `json:"id"`
@@ -59,8 +59,8 @@ type MangaResponse struct {
 				CreatedAt   string `json:"createdAt"`
 				UpdatedAt   string `json:"updatedAt"`
 				Version     int    `json:"version"`
-			}
-		} `json:"relationships, omitempty"`
+			} `json:"attributes,omitempty"`
+		} `json:"relationships,omitempty"`
 	} `json:"data"`
 }
 
@@ -87,14 +87,16 @@ func authorization() {
 	// err := godotenv.Load(".env")
 
 	// if err != nil {
-	// 	log.Fatalf("Error loading .env file, err: %s \n", err)
+	// 	log.Printf("Error loading .env file, err: %s \n", err)
 	// }
+
+	log.Print("Authorizing... \n")
 
 	body := strings.NewReader(fmt.Sprintf("{\"username\": \"%s\", \"password\": \"%s\"}", os.Getenv("MANGADEX_USERNAME"), os.Getenv("MANGADEX_PASSWORD")))
 	res, err := http.Post("https://api.mangadex.org/auth/login", "application/json", body)
 
 	if err != nil {
-		log.Fatalf("Error authorizing, err: %s \n", err)
+		log.Printf("Error authorizing, err: %s \n", err)
 	}
 	defer res.Body.Close()
 
@@ -103,7 +105,53 @@ func authorization() {
 	err = json.NewDecoder(res.Body).Decode(&authResponse)
 
 	if err != nil {
-		log.Fatalf("Error parsing response body, err: %s \n", err)
+		log.Printf("Error parsing response body authorization, err: %s \n", err)
+	}
+
+	if authResponse.Errors != nil {
+		log.Printf("Error getting new auth token, err: %s \n", authResponse.Errors[0].Detail)
+
+		if authResponse.Errors[0].Status == 429 {
+			log.Printf("Too many requests, sleeping for 20 minutes")
+
+			time.Sleep(time.Second * 60 * 20)
+
+			authorization()
+		}
+	}
+
+	token = authResponse.Token.Session
+}
+
+func refreshToken() {
+	log.Print("Refreshing Token... \n")
+
+	body := strings.NewReader(fmt.Sprintf("{\"token\": \"%s\"}", token))
+	res, err := http.Post("https://api.mangadex.org/auth/refresh", "application/json", body)
+
+	if err != nil {
+		log.Printf("Error refreshing token, err: %s \n", err)
+	}
+	defer res.Body.Close()
+
+	var authResponse AuthResponse
+
+	err = json.NewDecoder(res.Body).Decode(&authResponse)
+
+	if err != nil {
+		log.Printf("Error parsing response body authorization, err: %s \n", err)
+	}
+
+	if authResponse.Errors != nil {
+		log.Printf("Error getting new auth token, err: %s \n", authResponse.Errors[0].Detail)
+
+		if authResponse.Errors[0].Status == 429 {
+			log.Printf("Too many requests, sleeping for 20 minutes")
+
+			time.Sleep(time.Second * 60 * 20)
+
+			authorization()
+		}
 	}
 
 	token = authResponse.Token.Session
@@ -117,17 +165,13 @@ func getAllMangasIds() map[string]interface{} {
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := client.Do(req)
 
-	if res.StatusCode == 429 {
-		authorization()
-
-		time.Sleep(time.Second * 11)
-	} else if err != nil || res.StatusCode != 200 {
+	if err != nil || res.StatusCode != 200 {
 		if res.StatusCode == 401 {
-			authorization()
+			refreshToken()
 
 			return getAllMangasIds()
 		} else {
-			log.Fatalf("Error retrieving manga statuses from mangadex, err: %s \n", err)
+			log.Printf("Error retrieving manga statuses from mangadex, err: %s \n", err)
 		}
 	}
 	defer res.Body.Close()
@@ -137,7 +181,10 @@ func getAllMangasIds() map[string]interface{} {
 	err = json.NewDecoder(res.Body).Decode(&statusReponse)
 
 	if err != nil {
-		log.Fatalf("Error parsing response body for https://api.mangadex.org/manga/status, err: %s \n", err)
+		resBody, _ := ioutil.ReadAll(res.Body)
+		fmt.Printf("res %s\n", string(resBody))
+
+		log.Printf("Error parsing response body for https://api.mangadex.org/manga/status, err: %s \n", err)
 	}
 
 	m := make(map[string]interface{})
@@ -157,19 +204,16 @@ func getManga(mangaId string, status string) Manga {
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := client.Do(req)
 
-	if res.StatusCode == 429 {
-		authorization()
-
-		time.Sleep(time.Second * 11)
-	} else if err != nil || res.StatusCode != 200 {
+	if err != nil || res.StatusCode != 200 {
 		if res.StatusCode == 401 {
-			authorization()
+			refreshToken()
 
 			return getManga(mangaId, status)
 		} else {
-			log.Fatalf("Error retrieving manga detail from mangadex, err: %s \n", err)
+			log.Printf("Error retrieving manga detail from mangadex, err: %s \n", err)
 		}
 	}
+
 	defer res.Body.Close()
 
 	var mangaResponse MangaResponse
@@ -177,7 +221,7 @@ func getManga(mangaId string, status string) Manga {
 	err = json.NewDecoder(res.Body).Decode(&mangaResponse)
 
 	if err != nil {
-		log.Fatalf("Error parsing response body for manga detail, mangaId: %s err: %s \n", mangaId, err)
+		log.Printf("Error parsing response body for manga detail, mangaId: %s err: %s \n", mangaId, err)
 	}
 
 	manga := Manga{
@@ -241,19 +285,9 @@ func getManga(mangaId string, status string) Manga {
 		break
 	}
 
-	if mangaResponse.Data.Attributes.Status == "completed" {
-		statusses = append(statusses, DoneAiring)
-		manga.Status = statusses
-	}
-
-	if mangaResponse.Data.Attributes.LastChapter != "" {
-		i, _ := strconv.ParseFloat(mangaResponse.Data.Attributes.LastChapter, 32)
-		manga.LatestRelease = float32(i)
-	} else {
-		latestRelease, updatedAt := getChapterForManga(mangaId)
-		manga.LatestRelease = latestRelease
-		manga.LatestReleaseUpdatedAt = updatedAt
-	}
+	latestRelease, updatedAt := getChapterForManga(mangaId)
+	manga.LatestRelease = latestRelease
+	manga.LatestReleaseUpdatedAt = updatedAt
 
 	return manga
 }
@@ -267,17 +301,13 @@ func getChapterForManga(mangaId string) (float32, string) {
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := client.Do(req)
 
-	if res.StatusCode == 429 {
-		authorization()
-
-		time.Sleep(time.Second * 11)
-	} else if err != nil || res.StatusCode != 200 {
+	if err != nil || res.StatusCode != 200 {
 		if res.StatusCode == 401 {
-			authorization()
+			refreshToken()
 
 			return getChapterForManga(mangaId)
 		} else {
-			log.Fatalf("Error retrieving manga chapters from mangadex mangaId: %s, err: %s \n", mangaId, err)
+			log.Printf("Error retrieving manga chapters from mangadex mangaId: %s, err: %s \n", mangaId, err)
 		}
 	}
 	defer res.Body.Close()
@@ -287,7 +317,7 @@ func getChapterForManga(mangaId string) (float32, string) {
 	err = json.NewDecoder(res.Body).Decode(&chapterResponse)
 
 	if err != nil {
-		log.Fatalf("Error parsing response body for manga chapters, mangaId: %s err: %s \n", mangaId, err)
+		log.Printf("Error parsing response body for manga chapters, mangaId: %s err: %s \n", mangaId, err)
 	}
 
 	i, _ := strconv.ParseFloat(chapterResponse.Data[0].Attributes.Chapter, 32)
@@ -301,30 +331,12 @@ func SyncMangaDex() []Manga {
 	idsAndStatusesMap := getAllMangasIds()
 
 	var mangas []Manga
-	batchRequestCount := 60
-	loopCount := 0
-	i := 0
 
-	for {
-		for id, status := range idsAndStatusesMap {
-			i++
-
-			manga := getManga(id, fmt.Sprintf("%s", status))
-			mangas = append(mangas, manga)
-			delete(idsAndStatusesMap, id)
-
-			if i == batchRequestCount {
-				loopCount++
-				i = 0
-				break
-			}
-		}
-
-		time.Sleep(time.Second * 10)
-
-		if loopCount >= len(idsAndStatusesMap) {
-			break
-		}
+	for id, status := range idsAndStatusesMap {
+		manga := getManga(id, fmt.Sprintf("%s", status))
+		mangas = append(mangas, manga)
+		delete(idsAndStatusesMap, id)
+		time.Sleep(time.Second * 1)
 	}
 
 	return mangas

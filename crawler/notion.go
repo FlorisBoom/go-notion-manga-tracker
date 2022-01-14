@@ -178,7 +178,7 @@ func Sync() {
 	// err := godotenv.Load(".env")
 
 	// if err != nil {
-	// 	log.Fatalf("Error loading .env file, err: %s \n", err)
+	// 	log.Printf("Error loading .env file, err: %s \n", err)
 	// }
 
 	notionSecret = os.Getenv("NOTION_SECRET")
@@ -231,7 +231,7 @@ func updateNotionPage(pageID string, latestChapter float32, latestReleaseUpdated
 	res, err := client.Do(req)
 
 	if err != nil || res.StatusCode != 200 {
-		log.Fatalf("Error updating notion page, pageID: %s err: %s \n", pageID, err)
+		log.Printf("Error updating notion page, pageID: %s err: %s \n", pageID, err)
 	}
 	defer res.Body.Close()
 }
@@ -291,7 +291,11 @@ func createNotionPage(manga Manga) {
 		notionCreateBody.Properties.ReleaseSchedule.MultiSelect[0].Name = manga.ReleaseSchedule
 	}
 
-	body, _ := json.Marshal(notionCreateBody)
+	body, err := json.Marshal(notionCreateBody)
+
+	if err != nil {
+		log.Printf("Error creating body for creating new page, mangaId: %s err: %s \n", manga.ID, err)
+	}
 
 	req, _ := http.NewRequest("POST", "https://api.notion.com/v1/pages", bytes.NewBuffer(body))
 	req.Header.Add("Authorization", "Bearer "+notionSecret)
@@ -301,7 +305,7 @@ func createNotionPage(manga Manga) {
 	res, err := client.Do(req)
 
 	if err != nil || res.StatusCode != 200 {
-		log.Fatalf("Error creating notion page, mangaID: %s err: %s \n", manga.ID, err)
+		log.Printf("Error creating notion page, mangaID: %s err: %s \n", manga.ID, err)
 	}
 	defer res.Body.Close()
 }
@@ -334,7 +338,7 @@ func getNotionPages(includeMangaDex bool) []Manga {
 		res, err := client.Do(req)
 
 		if err != nil || res.StatusCode != 200 {
-			log.Fatalf("Error retrieving database pages, err: %s \n", err)
+			log.Printf("Error retrieving database pages, err: %s \n", err)
 		}
 		defer res.Body.Close()
 
@@ -343,7 +347,7 @@ func getNotionPages(includeMangaDex bool) []Manga {
 		err = json.NewDecoder(res.Body).Decode(&notionPagesResponse)
 
 		if err != nil {
-			log.Fatalf("Error parsing response body, err: %s \n", err)
+			log.Printf("Error parsing response body, err: %s \n", err)
 		}
 
 		nextCursor = notionPagesResponse.NextCursor
