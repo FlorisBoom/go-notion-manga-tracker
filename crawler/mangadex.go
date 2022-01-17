@@ -320,6 +320,14 @@ func getChapterForManga(mangaId string) (float32, string) {
 		log.Printf("Error parsing response body for manga chapters, mangaId: %s err: %s \n", mangaId, err)
 	}
 
+	log.Printf("mangaId %s\n", mangaId)
+	log.Printf("chapterResponse %+v\n", chapterResponse)
+	log.Printf(" len(chapterResponse.Data) %d\n", len(chapterResponse.Data))
+
+	if len(chapterResponse.Data) == 0 {
+		return 0, time.Now().In(loc).Format("2006-01-02 15:04:05")
+	}
+
 	i, _ := strconv.ParseFloat(chapterResponse.Data[0].Attributes.Chapter, 32)
 
 	return float32(i), chapterResponse.Data[0].Attributes.UpdatedAt
