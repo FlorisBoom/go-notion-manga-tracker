@@ -18,8 +18,8 @@ func CrawlManga(url string, latestRelease float32) float32 {
 
 	switch true {
 	case strings.Contains(url, "mangakakalot.com"):
-		c.OnHTML("chapter-list", func(e *colly.HTMLElement) {
-			latestChapter = e.ChildText("row:first-child span:first-child a")
+		c.OnHTML(".chapter-list", func(e *colly.HTMLElement) {
+			latestChapter = e.ChildText("div:first-child span:first-child a")
 			latestChapter = re.FindString(latestChapter)
 		})
 		break
