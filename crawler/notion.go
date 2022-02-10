@@ -439,7 +439,7 @@ func syncMangaDexWithNotion() {
 			if !(contains(manga.Status, Completed) || contains(manga.Status, Dropped) || contains(manga.Status, DoneAiring)) {
 				for key, notionManga := range notionMangas {
 					// Manga exists in notion and should be updated
-					if manga.Link == notionManga.Link {
+					if manga.Link == notionManga.Link || manga.Title == notionManga.Title {
 						log.Printf("Syncing %s \n", manga.Link)
 
 						if manga.LatestRelease > notionManga.LatestRelease {

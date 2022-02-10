@@ -40,8 +40,9 @@ type MangaResponse struct {
 		Type       string `json:"type"`
 		Attributes struct {
 			Title struct {
-				En string `json:"en,omitempty"`
-				Jp string `json:"jp,omitempty"`
+				En   string `json:"en,omitempty"`
+				Jp   string `json:"jp,omitempty"`
+				JaRo string `json:"ja-ro,omitempty"`
 			}
 			LastVolume  string `json:"lastVolume"`
 			LastChapter string `json:"lastChapter"`
@@ -147,7 +148,6 @@ func refreshToken() {
 
 		if authResponse.Errors[0].Status == 429 {
 			log.Printf("Too many requests, sleeping for 20 minutes")
-
 			time.Sleep(time.Second * 60 * 20)
 
 			authorization()
@@ -197,6 +197,8 @@ func getAllMangasIds() map[string]interface{} {
 }
 
 func getManga(mangaId string, status string) Manga {
+	log.Printf("Getting manga by id %s \n", mangaId)
+
 	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
@@ -236,6 +238,8 @@ func getManga(mangaId string, status string) Manga {
 		manga.Title = mangaResponse.Data.Attributes.Title.Jp
 	} else if mangaResponse.Data.Attributes.Title.En != "" {
 		manga.Title = mangaResponse.Data.Attributes.Title.En
+	} else if mangaResponse.Data.Attributes.Title.JaRo != "" {
+		manga.Title = mangaResponse.Data.Attributes.Title.JaRo
 	}
 
 	var coverArt string
