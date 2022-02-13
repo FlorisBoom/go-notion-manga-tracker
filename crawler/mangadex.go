@@ -234,10 +234,10 @@ func getManga(mangaId string, status string) Manga {
 		ReleaseSchedule:   "",
 	}
 
-	if mangaResponse.Data.Attributes.Title.Jp != "" {
-		manga.Title = mangaResponse.Data.Attributes.Title.Jp
-	} else if mangaResponse.Data.Attributes.Title.En != "" {
+	if mangaResponse.Data.Attributes.Title.En != "" {
 		manga.Title = mangaResponse.Data.Attributes.Title.En
+	} else if mangaResponse.Data.Attributes.Title.Jp != "" {
+		manga.Title = mangaResponse.Data.Attributes.Title.Jp
 	} else if mangaResponse.Data.Attributes.Title.JaRo != "" {
 		manga.Title = mangaResponse.Data.Attributes.Title.JaRo
 	}
