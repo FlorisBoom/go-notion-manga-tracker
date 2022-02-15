@@ -44,6 +44,9 @@ type MangaResponse struct {
 				Jp   string `json:"jp,omitempty"`
 				JaRo string `json:"ja-ro,omitempty"`
 			}
+			AltTitles []struct {
+				En string `json:"en,omitempty"`
+			} `json:"altTitles,omitempty"`
 			LastVolume  string `json:"lastVolume"`
 			LastChapter string `json:"lastChapter"`
 			Status      string `json:"status"`
@@ -234,7 +237,14 @@ func getManga(mangaId string, status string) Manga {
 		ReleaseSchedule:   "",
 	}
 
-	if mangaResponse.Data.Attributes.Title.En != "" {
+	if len(mangaResponse.Data.Attributes.AltTitles) > 0 {
+		for _, altTitle := range mangaResponse.Data.Attributes.AltTitles {
+			if altTitle.En != "" {
+				manga.Title = altTitle.En
+				break
+			}
+		}
+	} else if mangaResponse.Data.Attributes.Title.En != "" {
 		manga.Title = mangaResponse.Data.Attributes.Title.En
 	} else if mangaResponse.Data.Attributes.Title.Jp != "" {
 		manga.Title = mangaResponse.Data.Attributes.Title.Jp
