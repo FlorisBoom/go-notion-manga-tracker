@@ -45,8 +45,8 @@ type MangaResponse struct {
 				JaRo string `json:"ja-ro,omitempty"`
 			}
 			AltTitles []struct {
-				En string `json:"en,omitempty"`
-			} `json:"altTitles,omitempty"`
+				En string `json:"en"`
+			} `json:"altTitles"`
 			LastVolume  string `json:"lastVolume"`
 			LastChapter string `json:"lastChapter"`
 			Status      string `json:"status"`
@@ -88,11 +88,11 @@ type ChapterResponse struct {
 var token string
 
 func authorization() {
-	// err := godotenv.Load(".env")
+	// 	err := godotenv.Load(".env")
 
-	// if err != nil {
-	// 	log.Printf("Error loading .env file, err: %s \n", err)
-	// }
+	// 	if err != nil {
+	// 		log.Printf("Error loading .env file, err: %s \n", err)
+	// 	}
 
 	log.Print("Authorizing... \n")
 
@@ -237,19 +237,17 @@ func getManga(mangaId string, status string) Manga {
 		ReleaseSchedule:   "",
 	}
 
-	if len(mangaResponse.Data.Attributes.AltTitles) > 0 {
-		for _, altTitle := range mangaResponse.Data.Attributes.AltTitles {
-			if altTitle.En != "" {
-				manga.Title = altTitle.En
-				break
-			}
+	for _, altTitle := range mangaResponse.Data.Attributes.AltTitles {
+		if altTitle.En != "" {
+			manga.Title = altTitle.En
+			break
+		} else if mangaResponse.Data.Attributes.Title.En != "" {
+			manga.Title = mangaResponse.Data.Attributes.Title.En
+		} else if mangaResponse.Data.Attributes.Title.Jp != "" {
+			manga.Title = mangaResponse.Data.Attributes.Title.Jp
+		} else if mangaResponse.Data.Attributes.Title.JaRo != "" {
+			manga.Title = mangaResponse.Data.Attributes.Title.JaRo
 		}
-	} else if mangaResponse.Data.Attributes.Title.En != "" {
-		manga.Title = mangaResponse.Data.Attributes.Title.En
-	} else if mangaResponse.Data.Attributes.Title.Jp != "" {
-		manga.Title = mangaResponse.Data.Attributes.Title.Jp
-	} else if mangaResponse.Data.Attributes.Title.JaRo != "" {
-		manga.Title = mangaResponse.Data.Attributes.Title.JaRo
 	}
 
 	var coverArt string
