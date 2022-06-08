@@ -26,50 +26,78 @@ type Manga struct {
 	Art                    string
 }
 
+type Type struct {
+	Select Select `json:"select"`
+}
+
+type Select struct {
+	Name string `json:"name"`
+}
+
+type CurrentProgress struct {
+	Number float32 `json:"number"`
+}
+
+type Rating struct {
+	Number float32 `json:"number"`
+}
+
+type Link struct {
+	Url string `json:"url"`
+}
+
+type MultiSelect struct {
+	Name  string `json:"name"`
+	Color string `json:"color,omitempty"`
+}
+
+type Status struct {
+	MultiSelect []MultiSelect `json:"multi_select"`
+}
+
+type Date struct {
+	Start string `json:"start"`
+}
+
+type LatestReleaseUpdatedAt struct {
+	Date Date `json:"date"`
+}
+
+type LatestRelease struct {
+	Number float32 `json:"number"`
+}
+
+type SeenLatestRelease struct {
+	Checkbox bool `json:"checkbox"`
+}
+
+type ReleaseSchedule struct {
+	MultiSelect []MultiSelect
+}
+
+type Text struct {
+	Content string `json:"content"`
+}
+
+type Titles struct {
+	Text Text `json:"text"`
+}
+
+type Title struct {
+	Title []Titles `json:"title"`
+}
+
 type NotionProperties struct {
-	Type struct {
-		Select struct {
-			Name string `json:"name"`
-		} `json:"select"`
-	} `json:"Type"`
-	CurrentProgress struct {
-		Number float32 `json:"number"`
-	} `json:"Current Progress"`
-	Rating *struct {
-		Number float32 `json:"number"`
-	} `json:"Rating,omitempty"`
-	Link struct {
-		Url string `json:"url"`
-	} `json:"Link"`
-	Status struct {
-		MultiSelect []struct {
-			Color string `json:"color"`
-			Name  string `json:"name"`
-		} `json:"multi_select"`
-	} `json:"Status"`
-	LatestReleaseUpdatedAt struct {
-		Date struct {
-			Start string `json:"start"`
-		} `json:"date"`
-	} `json:"Latest Release Updated At"`
-	LatestRelease struct {
-		Number float32 `json:"number"`
-	} `json:"Latest Release"`
-	SeenLatestRelease struct {
-		Checkbox bool `json:"checkbox"`
-	} `json:"Seen Latest Release"`
-	ReleaseSchedule *struct {
-		MultiSelect []struct {
-			Name string `json:"name"`
-		} `json:"multi_select"`
-	} `json:"Release Schedule,omitempty"`
-	Title struct {
-		Title []struct {
-			Text struct {
-				Content string `json:"content"`
-			} `json:"text"`
-		} `json:"title"`
-	} `json:"Title"`
+	Type                   Type                   `json:"Type"`
+	CurrentProgress        CurrentProgress        `json:"Current Progress"`
+	Rating                 Rating                 `json:"Rating,omitempty"`
+	Link                   Link                   `json:"Link"`
+	Status                 Status                 `json:"Status"`
+	LatestReleaseUpdatedAt LatestReleaseUpdatedAt `json:"Latest Release Updated At"`
+	LatestRelease          LatestRelease          `json:"Latest Release"`
+	SeenLatestRelease      SeenLatestRelease      `json:"Seen Latest Release"`
+	ReleaseSchedule        *ReleaseSchedule       `json:"Release Schedule,omitempty"`
+	Title                  Title                  `json:"Title"`
 }
 
 type NotionPagesResponseResults struct {
@@ -93,45 +121,38 @@ type NotionPagesResponse struct {
 	NextCursor string                       `json:"next_cursor"`
 }
 
-type Status struct {
-	MultiSelect []struct {
-		Color string `json:"color"`
-		Name  string `json:"name"`
-	} `json:"multi_select"`
-}
-
 type NotionUpdateBody struct {
 	Properties struct {
-		LatestReleaseUpdatedAt struct {
-			Date struct {
-				Start string `json:"start"`
-			} `json:"date"`
-		} `json:"Latest Release Updated At"`
-		LatestRelease struct {
-			Number float32 `json:"number"`
-		} `json:"Latest Release"`
-		SeenLatestRelease struct {
-			Checkbox bool `json:"checkbox"`
-		} `json:"Seen Latest Release"`
-		Status *Status `json:"Status,omitempty"`
+		LatestReleaseUpdatedAt LatestReleaseUpdatedAt `json:"Latest Release Updated At"`
+		LatestRelease          LatestRelease          `json:"Latest Release"`
+		SeenLatestRelease      SeenLatestRelease      `json:"Seen Latest Release"`
+		Status                 *Status                `json:"Status,omitempty"`
 	} `json:"properties"`
 }
 
+type Parent struct {
+	DatabaseID string `json:"database_id"`
+}
+
+type External struct {
+	Url string `json:"url"`
+}
+
+type Image struct {
+	Type     string   `json:"type"`
+	External External `json:"external"`
+}
+
+type Children struct {
+	Object string `json:"object"`
+	Type   string `json:"type"`
+	Image  Image  `json:"image"`
+}
+
 type NotionCreateBody struct {
-	Parent struct {
-		DatabaseID string `json:"database_id"`
-	} `json:"parent"`
+	Parent     Parent           `json:"parent"`
 	Properties NotionProperties `json:"properties"`
-	Children   []struct {
-		Object string `json:"object"`
-		Type   string `json:"type"`
-		Image  struct {
-			Type     string `json:"type"`
-			External struct {
-				Url string `json:"url"`
-			} `json:"external"`
-		} `json:"image"`
-	} `json:"children"`
+	Children   []Children       `json:"children"`
 }
 
 const (
@@ -209,16 +230,12 @@ func updateNotionPage(pageID string, latestChapter float32, latestReleaseUpdated
 	}
 
 	if status != "" {
+		multiselect := make([]MultiSelect, 1)
+		multiselect[0].Color = getColorForStatus(status)
+		multiselect[0].Name = status
+
 		notionUpdateBody.Properties.Status = &Status{
-			MultiSelect: []struct {
-				Color string `json:"color"`
-				Name  string `json:"name"`
-			}{
-				{
-					Color: getColorForStatus(status),
-					Name:  status,
-				},
-			},
+			MultiSelect: multiselect,
 		}
 	}
 
@@ -231,7 +248,7 @@ func updateNotionPage(pageID string, latestChapter float32, latestReleaseUpdated
 	res, err := client.Do(req)
 
 	if err != nil || res.StatusCode != 200 {
-		log.Printf("Error updating notion page, pageID: %s err: %s \n", pageID, err)
+		log.Printf("Error updating notion page, pageID: %s err: %s , status code: %v \n", pageID, err, res.StatusCode)
 	}
 	defer res.Body.Close()
 }
@@ -241,54 +258,71 @@ func createNotionPage(manga Manga) {
 		Timeout: time.Second * 10,
 	}
 
-	notionCreateBody := &NotionCreateBody{
-		Parent: struct {
-			DatabaseID string `json:"database_id"`
-		}{DatabaseID: notionDatabaseId},
-	}
-	notionCreateBody.Properties.Type.Select.Name = manga.Type
-	notionCreateBody.Properties.CurrentProgress.Number = manga.CurrentProgress
-	notionCreateBody.Properties.Link.Url = manga.Link
-	notionCreateBody.Properties.Status.MultiSelect = make([]struct {
-		Color string `json:"color"`
-		Name  string `json:"name"`
-	}, len(manga.Status))
+	statusMultiSelect := make([]MultiSelect, len(manga.Status))
 
 	for key, _ := range manga.Status {
-		notionCreateBody.Properties.Status.MultiSelect[key].Name = manga.Status[key]
-		notionCreateBody.Properties.Status.MultiSelect[key].Color = getColorForStatus(manga.Status[key])
+		statusMultiSelect[key].Name = manga.Status[key]
+		statusMultiSelect[key].Color = getColorForStatus(manga.Status[key])
 	}
 
-	notionCreateBody.Properties.Status.MultiSelect[0].Color = getColorForStatus(manga.Status[0])
-	notionCreateBody.Properties.LatestReleaseUpdatedAt.Date.Start = manga.LatestReleaseUpdatedAt
-	notionCreateBody.Properties.LatestRelease.Number = manga.LatestRelease
-	notionCreateBody.Properties.SeenLatestRelease.Checkbox = manga.SeenLatestRelease
-	notionCreateBody.Properties.Title.Title = make([]struct {
-		Text struct {
-			Content string `json:"content"`
-		} `json:"text"`
-	}, 1)
-	notionCreateBody.Properties.Title.Title[0].Text.Content = manga.Title
-	notionCreateBody.Children = make([]struct {
-		Object string `json:"object"`
-		Type   string `json:"type"`
-		Image  struct {
-			Type     string `json:"type"`
-			External struct {
-				Url string `json:"url"`
-			} `json:"external"`
-		} `json:"image"`
-	}, 1)
-	notionCreateBody.Children[0].Object = "block"
-	notionCreateBody.Children[0].Type = "image"
-	notionCreateBody.Children[0].Image.Type = "external"
-	notionCreateBody.Children[0].Image.External.Url = manga.Art
+	titles := make([]Titles, 1)
+	titles[0].Text.Content = manga.Title
+
+	notionCreateBody := &NotionCreateBody{
+		Parent: Parent{
+			DatabaseID: notionDatabaseId,
+		},
+		Properties: NotionProperties{
+			Type: Type{
+				Select: Select{
+					Name: manga.Type,
+				},
+			},
+			CurrentProgress: CurrentProgress{
+				Number: manga.CurrentProgress,
+			},
+			Link: Link{
+				Url: manga.Link,
+			},
+			Status: Status{
+				MultiSelect: statusMultiSelect,
+			},
+			LatestReleaseUpdatedAt: LatestReleaseUpdatedAt{
+				Date: Date{
+					Start: manga.LatestReleaseUpdatedAt,
+				},
+			},
+			LatestRelease: LatestRelease{
+				Number: manga.LatestRelease,
+			},
+			SeenLatestRelease: SeenLatestRelease{
+				Checkbox: manga.SeenLatestRelease,
+			},
+			Title: Title{
+				Title: titles,
+			},
+		},
+	}
+
+	notionCreateBody.Children = make([]Children, 1)
+	notionCreateBody.Children[0] = Children{
+		Object: "block",
+		Type:   "image",
+		Image: Image{
+			Type: "external",
+			External: External{
+				Url: manga.Art,
+			},
+		},
+	}
 
 	if manga.ReleaseSchedule != "" {
-		notionCreateBody.Properties.ReleaseSchedule.MultiSelect = make([]struct {
-			Name string `json:"name"`
-		}, 1)
-		notionCreateBody.Properties.ReleaseSchedule.MultiSelect[0].Name = manga.ReleaseSchedule
+		releaseScheduleMultiSelect := make([]MultiSelect, 1)
+		releaseScheduleMultiSelect[0].Name = manga.ReleaseSchedule
+
+		notionCreateBody.Properties.ReleaseSchedule = &ReleaseSchedule{
+			MultiSelect: releaseScheduleMultiSelect,
+		}
 	}
 
 	body, err := json.Marshal(notionCreateBody)
@@ -338,8 +372,9 @@ func getNotionPages(includeMangaDex bool) []Manga {
 		res, err := client.Do(req)
 
 		if err != nil || res.StatusCode != 200 {
-			log.Printf("Error retrieving database pages, err: %s \n", err)
+			log.Printf("Error retrieving database pages, err: %s statuscode: %v \n", err, res.StatusCode)
 		}
+
 		defer res.Body.Close()
 
 		var notionPagesResponse NotionPagesResponse
@@ -443,6 +478,8 @@ func syncMangaDexWithNotion() {
 						log.Printf("Syncing %s \n", manga.Link)
 
 						if manga.LatestRelease > notionManga.LatestRelease {
+							log.Printf("Updating manga with link: %s \n", manga.Link)
+
 							go updateNotionPage(notionManga.ID, manga.LatestRelease, manga.LatestReleaseUpdatedAt, manga.Status[0])
 						}
 
@@ -450,6 +487,7 @@ func syncMangaDexWithNotion() {
 					} else if key+1 == len(notionMangas) {
 						// Manga doesn't exist in notion and should be added
 						log.Printf("Creating new notion page for %s \n", manga.Link)
+
 						go createNotionPage(manga)
 					}
 				}
