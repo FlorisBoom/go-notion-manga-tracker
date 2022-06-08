@@ -72,7 +72,7 @@ type SeenLatestRelease struct {
 }
 
 type ReleaseSchedule struct {
-	MultiSelect []MultiSelect
+	MultiSelect []MultiSelect `json:"multi_select"`
 }
 
 type Text struct {
