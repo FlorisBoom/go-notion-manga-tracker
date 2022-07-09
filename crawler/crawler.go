@@ -25,7 +25,8 @@ func CrawlManga(url string, latestRelease float32) float32 {
 		break
 	case strings.Contains(url, "mangakakalot.to"):
 		mangaID := re.FindString(url)
-		url = "https://mangakakalot.to/ajax/manga/list-chapter-volumen?id=" + mangaID
+		url = "https://mangakakalot.to/ajax/manga/list-chapter-volume?id=" + mangaID
+
 		c.OnHTML("#list-chapter-en", func(e *colly.HTMLElement) {
 			latestChapter = e.ChildText("div:first-child div:first-child a")
 			latestChapter = re.FindString(latestChapter)
