@@ -23,6 +23,14 @@ func CrawlManga(url string, latestRelease float32) float32 {
 			latestChapter = re.FindString(latestChapter)
 		})
 		break
+	case strings.Contains(url, "mangakakalot.to"):
+		mangaID := re.FindString(url)
+		url = "https://mangakakalot.to/ajax/manga/list-chapter-volumen?id=" + mangaID
+		c.OnHTML("#list-chapter-en", func(e *colly.HTMLElement) {
+			latestChapter = e.ChildText("div:first-child div:first-child a")
+			latestChapter = re.FindString(latestChapter)
+		})
+		break
 	case strings.Contains(url, "readmanganato.com") || strings.Contains(url, "manganato.com"):
 		c.OnHTML(".row-content-chapter", func(e *colly.HTMLElement) {
 			latestChapter = e.ChildText("li:first-child a")
