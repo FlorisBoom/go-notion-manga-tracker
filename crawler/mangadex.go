@@ -216,6 +216,8 @@ func getManga(mangaId string, status string) Manga {
 			return getManga(mangaId, status)
 		} else {
 			log.Printf("Error retrieving manga detail from mangadex, err: %s \n", err)
+
+			return Manga{}
 		}
 	}
 
@@ -350,9 +352,11 @@ func SyncMangaDex() []Manga {
 
 	for id, status := range idsAndStatusesMap {
 		manga := getManga(id, fmt.Sprintf("%s", status))
-		mangas = append(mangas, manga)
-		delete(idsAndStatusesMap, id)
-		time.Sleep(time.Second * 1)
+		if manga.Title != "" {
+			mangas = append(mangas, manga)
+			delete(idsAndStatusesMap, id)
+			time.Sleep(time.Second * 1)
+		}
 	}
 
 	return mangas
