@@ -143,7 +143,7 @@ func refreshToken() {
 	err = json.NewDecoder(res.Body).Decode(&authResponse)
 
 	if err != nil {
-		log.Printf("Error parsing response body authorization, err: %s \n", err)
+		log.Printf("Error parsing response body authorization, err: %v \n", err)
 	}
 
 	if authResponse.Errors != nil {
@@ -174,7 +174,7 @@ func getAllMangasIds() map[string]interface{} {
 
 			return getAllMangasIds()
 		} else {
-			log.Printf("Error retrieving manga statuses from mangadex, err: %s \n", err)
+			log.Printf("Error retrieving manga statuses from mangadex, err: %v \n", err)
 		}
 	}
 	defer res.Body.Close()
@@ -215,7 +215,7 @@ func getManga(mangaId string, status string) Manga {
 
 			return getManga(mangaId, status)
 		} else {
-			log.Printf("Error retrieving manga detail from mangadex, err: %s \n", err)
+			log.Printf("Error retrieving manga detail from mangadex, err: %v \n", err)
 
 			return Manga{}
 		}
@@ -228,7 +228,7 @@ func getManga(mangaId string, status string) Manga {
 	err = json.NewDecoder(res.Body).Decode(&mangaResponse)
 
 	if err != nil {
-		log.Printf("Error parsing response body for manga detail, mangaId: %s err: %s \n", mangaId, err)
+		log.Printf("Error parsing response body for manga detail, mangaId: %s err: %v \n", mangaId, err)
 	}
 
 	manga := Manga{
@@ -321,7 +321,7 @@ func getChapterForManga(mangaId string) (float32, string) {
 
 			return getChapterForManga(mangaId)
 		} else {
-			log.Printf("Error retrieving manga chapters from mangadex mangaId: %s, err: %s \n", mangaId, err)
+			log.Printf("Error retrieving manga chapters from mangadex mangaId: %s, err: %v \n", mangaId, err)
 		}
 	}
 	defer res.Body.Close()
@@ -331,7 +331,7 @@ func getChapterForManga(mangaId string) (float32, string) {
 	err = json.NewDecoder(res.Body).Decode(&chapterResponse)
 
 	if err != nil {
-		log.Printf("Error parsing response body for manga chapters, mangaId: %s err: %s \n", mangaId, err)
+		log.Printf("Error parsing response body for manga chapters, mangaId: %s err: %v \n", mangaId, err)
 	}
 
 	if len(chapterResponse.Data) == 0 {
